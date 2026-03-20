@@ -1,0 +1,41 @@
+name: Staging Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - staging
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create staging env file
+        run: |
+          cp .env.staging.example .env.staging
+          echo "RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}" >> .env.staging
+          echo "RESEND_FROM_EMAIL=${{ secrets.RESEND_FROM_EMAIL }}" >> .env.staging
+          echo "ONCALL_ALERT_WEBHOOK_URL=${{ secrets.ONCALL_ALERT_WEBHOOK_URL }}" >> .env.staging
+          echo "OTEL_HTTP_ENDPOINT=${{ secrets.OTEL_HTTP_ENDPOINT }}" >> .env.staging
+
+      - name: Build and start staging container
+        run: docker compose -f docker-compose.staging.yml up -d --build
+
+      - name: Wait for health endpoint
+        run: |
+          for i in {1..20}; do
+            if curl -sf http://localhost:3000/api/health > /dev/null; then
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Health check failed" >&2
+          docker compose -f docker-compose.staging.yml logs
+          exit 1
+
+      - name: Stop container
+        if: always()
+        run: docker compose -f docker-compose.staging.yml down

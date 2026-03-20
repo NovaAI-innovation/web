@@ -1,0 +1,31 @@
+{
+  "_metadata": {
+    "major_version": 1,
+    "minor_version": 1
+  },
+  "display_information": {
+    "name": "Chimera Oncall",
+    "description": "On-call and alert notifications for Chimera Enterprise",
+    "background_color": "#d4a136"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "Chimera Alert",
+      "always_online": false
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "incoming-webhook",
+        "chat:write",
+        "chat:write.public"
+      ]
+    }
+  },
+  "settings": {
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}

@@ -1,0 +1,17 @@
+﻿<svg width="1800" height="360" viewBox="0 0 1800 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- transparent background -->
+  <g transform="translate(70 50)">
+    <rect x="0" y="0" width="250" height="250" stroke="#3A3F45" stroke-width="8"/>
+    <path d="M200 52H65V196H200" stroke="#F5F5F5" stroke-width="30" stroke-linecap="square" stroke-linejoin="miter"/>
+    <path d="M224 52V196M224 52H132M224 124H154M224 196H132" stroke="#C79A2C" stroke-width="24" stroke-linecap="square" stroke-linejoin="miter"/>
+    <path d="M30 214L88 156" stroke="#3A3F45" stroke-width="10"/>
+  </g>
+  <g transform="translate(380 55)">
+    <text x="0" y="162" font-family="Oswald, 'Arial Narrow', sans-serif" font-size="190" font-weight="700" letter-spacing="4" fill="#F5F5F5">CHIMERA</text>
+    <polygon points="560,32 596,32 572,84 536,84" fill="#111111"/>
+    <polygon points="758,32 794,32 770,84 734,84" fill="#111111"/>
+    <polygon points="878,32 914,32 890,84 854,84" fill="#111111"/>
+    <text x="0" y="240" font-family="Roboto, Arial, sans-serif" font-size="52" font-weight="600" letter-spacing="14" fill="#C9C9C9">ENTERPRISE</text>
+    <rect x="2" y="258" width="920" height="7" fill="#C79A2C"/>
+  </g>
+</svg>

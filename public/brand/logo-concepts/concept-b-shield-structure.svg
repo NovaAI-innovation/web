@@ -1,0 +1,17 @@
+﻿<svg width="1400" height="700" viewBox="0 0 1400 700" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="700" fill="#111111"/>
+
+  <!-- Concept B: Shield Structure Mark -->
+  <g transform="translate(90 90)">
+    <path d="M180 20H460L560 115V290C560 430 465 508 320 560C175 508 80 430 80 290V115L180 20Z" fill="#1A1A1A" stroke="#F5F5F5" stroke-width="14"/>
+
+    <!-- Internal structure motif -->
+    <path d="M150 180H490M150 250H490M150 320H490" stroke="#3A3F45" stroke-width="10"/>
+    <path d="M165 340L320 170L475 340" stroke="#C79A2C" stroke-width="20" stroke-linecap="square" stroke-linejoin="miter"/>
+    <path d="M320 170V420" stroke="#C79A2C" stroke-width="20" stroke-linecap="square"/>
+
+    <text x="650" y="280" font-family="Oswald, 'Arial Narrow', sans-serif" font-size="182" font-weight="700" letter-spacing="4" fill="#F5F5F5">CHIMERA</text>
+    <text x="650" y="370" font-family="Roboto, Arial, sans-serif" font-size="58" font-weight="600" letter-spacing="16" fill="#C9C9C9">ENTERPRISE</text>
+    <rect x="650" y="404" width="610" height="8" fill="#C79A2C"/>
+  </g>
+</svg>

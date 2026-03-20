@@ -1,0 +1,18 @@
+services:
+  chimera-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: chimera-web:production
+    container_name: chimera-web
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

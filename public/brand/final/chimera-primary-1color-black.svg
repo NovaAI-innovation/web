@@ -1,0 +1,11 @@
+﻿<svg width="1400" height="520" viewBox="0 0 1400 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="520" fill="#FFFFFF"/>
+  <g transform="translate(90 95)" fill="#111111">
+    <text x="0" y="190" font-family="Oswald, 'Arial Narrow', sans-serif" font-size="220" font-weight="700" letter-spacing="4" fill="#111111">CHIMERA</text>
+    <polygon points="650,44 692,44 664,104 622,104" fill="#FFFFFF"/>
+    <polygon points="888,44 930,44 902,104 860,104" fill="#FFFFFF"/>
+    <polygon points="1032,44 1074,44 1046,104 1004,104" fill="#FFFFFF"/>
+    <rect x="2" y="228" width="980" height="8" fill="#111111"/>
+    <text x="0" y="306" font-family="Roboto, Arial, sans-serif" font-size="56" font-weight="700" letter-spacing="16" fill="#111111">ENTERPRISE</text>
+  </g>
+</svg>
