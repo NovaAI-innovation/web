@@ -2,15 +2,159 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   CHIMERA ENTERPRISE — DESIGN SYSTEM TOKENS
+   3-Layer Architecture: Primitive → Semantic → Component
+   ============================================================ */
+
+/* ---- Layer 1: Primitive Tokens (raw values) ---- */
 :root {
-  --bg: #111111;
-  --surface: #242424;
-  --text: #f3f3f3;
-  --text-muted: #c9c9c9;
-  --border: #2e2e2e;
-  --accent: #d4a136;
-  --accent-dark: #b8882a;
+  /* Background scale (darkest → lightest) */
+  --color-black: #0a0a0a;
+  --color-dark: #111111;
+  --color-surface: #1a1a1a;
+  --color-elevated: #242424;
+  --color-border: #2e2e2e;
+  --color-border-subtle: #222222;
+
+  /* Gold accent palette */
+  --color-gold-50: #fdf8ed;
+  --color-gold-100: #f5e6be;
+  --color-gold-200: #e8c96e;
+  --color-gold-300: #e8b84b;
+  --color-gold-400: #d4a136;
+  --color-gold-500: #c69a2e;
+  --color-gold-600: #b8882a;
+  --color-gold-700: #9a7224;
+  --color-gold-800: #7c5c1d;
+  --color-gold-900: #5e4516;
+
+  /* Neutral text scale */
+  --color-white: #f3f3f3;
+  --color-text-secondary: #c9c9c9;
+  --color-text-muted: #9b9b9b;
+  --color-text-ghost: #5a5a5a;
+
+  /* Functional */
+  --color-red: #8b1a1a;
+  --color-red-light: #dc2626;
+  --color-green: #16a34a;
+
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --space-32: 8rem;
+
+  /* Fluid typography scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: clamp(1.25rem, 2vw, 1.5rem);
+  --text-2xl: clamp(1.5rem, 2.5vw, 1.875rem);
+  --text-3xl: clamp(1.75rem, 3vw, 2.25rem);
+  --text-4xl: clamp(2rem, 4vw, 3rem);
+  --text-5xl: clamp(2.5rem, 5vw, 3.75rem);
+  --text-hero: clamp(3rem, 8vw, 6rem);
+
+  /* Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 0.875rem;
+
+  /* Timing */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
 }
+
+/* ---- Layer 2: Semantic Tokens (contextual meaning) ---- */
+:root {
+  /* Surfaces */
+  --bg: var(--color-dark);
+  --surface: var(--color-surface);
+  --surface-elevated: var(--color-elevated);
+  --border: var(--color-border);
+  --border-subtle: var(--color-border-subtle);
+
+  /* Text */
+  --text: var(--color-white);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+  --text-ghost: var(--color-text-ghost);
+
+  /* Interactive / Accent */
+  --accent: var(--color-gold-400);
+  --accent-hover: var(--color-gold-300);
+  --accent-dark: var(--color-gold-600);
+  --accent-subtle: var(--color-gold-700);
+
+  /* Accent alpha (for glows, borders, overlays) */
+  --accent-alpha-10: rgba(212, 161, 54, 0.10);
+  --accent-alpha-20: rgba(212, 161, 54, 0.20);
+  --accent-alpha-30: rgba(212, 161, 54, 0.30);
+  --accent-alpha-40: rgba(212, 161, 54, 0.40);
+  --accent-alpha-50: rgba(212, 161, 54, 0.50);
+  --accent-alpha-60: rgba(212, 161, 54, 0.60);
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-bg-hover: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-accent: rgba(212, 161, 54, 0.15);
+}
+
+/* ---- Layer 3: Component Tokens ---- */
+:root {
+  /* Buttons */
+  --btn-primary-bg: var(--accent);
+  --btn-primary-text: var(--color-dark);
+  --btn-primary-hover: var(--accent-hover);
+  --btn-primary-shadow: 0 10px 26px -12px var(--accent-alpha-60);
+  --btn-outline-border: rgba(255, 255, 255, 0.40);
+  --btn-outline-hover: rgba(255, 255, 255, 0.10);
+  --btn-radius: var(--radius-md);
+  --btn-padding-x: var(--space-8);
+  --btn-padding-y: var(--space-3);
+
+  /* Cards */
+  --card-bg: var(--surface);
+  --card-border: var(--border);
+  --card-border-hover: var(--accent-dark);
+  --card-radius: var(--radius-xl);
+  --card-padding: var(--space-10);
+
+  /* Form inputs */
+  --input-bg: #1b1b1b;
+  --input-border: var(--border);
+  --input-border-focus: var(--accent);
+  --input-radius: var(--radius-lg);
+  --input-padding-x: var(--space-3);
+  --input-padding-y: var(--space-3);
+
+  /* Header */
+  --header-bg: rgba(0, 0, 0, 0.90);
+  --header-blur: 12px;
+}
+
+
+/* ============================================================
+   BASE RESETS & TYPOGRAPHY
+   ============================================================ */
 
 * {
   box-sizing: border-box;
@@ -44,11 +188,21 @@ a {
   text-decoration: none;
 }
 
+
+/* ============================================================
+   LAYOUT UTILITIES
+   ============================================================ */
+
 .container {
   width: min(960px, 100% - 2rem);
   margin: 0 auto;
   padding: 3rem 0;
 }
+
+
+/* ============================================================
+   HERO SECTION SYSTEM
+   ============================================================ */
 
 .hero {
   display: grid;
@@ -69,123 +223,12 @@ a {
 .eyebrow {
   color: var(--accent);
   text-transform: uppercase;
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.08em;
   font-weight: 700;
 }
 
-.card-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-}
-
-.card {
-  background: color-mix(in srgb, var(--surface) 85%, black 15%);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1.25rem;
-  transition: border-color 160ms ease;
-}
-
-.card:hover {
-  border-color: var(--accent-dark);
-}
-
-.card h2 {
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
-}
-
-.card p {
-  color: var(--text-muted);
-}
-
-.contact-form {
-  display: grid;
-  gap: 0.875rem;
-  padding: 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 90%, black 10%);
-}
-
-.contact-form label {
-  display: grid;
-  gap: 0.5rem;
-  font-size: 0.95rem;
-}
-
-.contact-form input,
-.contact-form textarea,
-.contact-form select {
-  background: #1b1b1b;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.7rem 0.8rem;
-  font: inherit;
-}
-
-.contact-form button {
-  border: 0;
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
-  background: var(--accent);
-  color: #111111;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.contact-form button:disabled {
-  opacity: 0.7;
-  cursor: wait;
-}
-
-.status-message {
-  min-height: 1.5rem;
-  color: var(--accent);
-}
-
-/* Motion Tokens */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-  }
-  html {
-    scroll-behavior: auto !important;
-  }
-}
-
-/* Premium Glass & Depth Effects */
-.glass {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px -12px rgb(0 0 0 / 0.4);
-}
-
-.glass-elevated {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(212, 161, 54, 0.15);
-  box-shadow: 
-    0 20px 40px -20px rgb(212 161 54 / 0.2),
-    inset 0 1px 0 rgba(255,255,255,0.1);
-}
-
-/* Micro-interaction Base */
-.card-hover {
-  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
-}
-
-.card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 28px -16px rgb(0 0 0 / 0.55);
-}
-
+/* Hero overlays & effects */
 .hero-steel {
   background:
     linear-gradient(165deg, rgba(255, 255, 255, 0.02) 0%, transparent 38%),
@@ -213,12 +256,8 @@ a {
 }
 
 @keyframes heroBeamSweep {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(130%);
-  }
+  from { transform: translateX(0); }
+  to { transform: translateX(130%); }
 }
 
 .hero-beam {
@@ -235,9 +274,7 @@ a {
   animation-iteration-count: infinite;
 }
 
-.hero-beam-a {
-  animation-duration: 14s;
-}
+.hero-beam-a { animation-duration: 14s; }
 
 .hero-beam-b {
   animation-duration: 19s;
@@ -253,16 +290,434 @@ a {
 }
 
 @keyframes heroBadgeIn {
-  from {
-    opacity: 0;
-    transform: translateX(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .hero-badge-in {
-  animation: heroBadgeIn 340ms ease-out both;
+  animation: heroBadgeIn 340ms var(--ease-out) both;
+}
+
+
+/* ============================================================
+   CARD SYSTEM
+   ============================================================ */
+
+.card-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.card {
+  background: color-mix(in srgb, var(--surface) 85%, black 15%);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  padding: 1.25rem;
+  transition: border-color var(--duration-base) var(--ease-smooth);
+}
+
+.card:hover {
+  border-color: var(--card-border-hover);
+}
+
+.card h2 {
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.card p {
+  color: var(--text-muted);
+}
+
+
+/* ============================================================
+   FORM SYSTEM
+   ============================================================ */
+
+.contact-form {
+  display: grid;
+  gap: 0.875rem;
+  padding: 1.25rem;
+  border: 1px solid var(--input-border);
+  border-radius: var(--card-radius);
+  background: color-mix(in srgb, var(--surface) 90%, black 10%);
+}
+
+.contact-form label {
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.contact-form input,
+.contact-form textarea,
+.contact-form select {
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--input-border);
+  border-radius: var(--input-radius);
+  padding: var(--input-padding-y) var(--input-padding-x);
+  font: inherit;
+  transition: border-color var(--duration-fast) var(--ease-smooth);
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus,
+.contact-form select:focus {
+  border-color: var(--input-border-focus);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-alpha-20);
+}
+
+.contact-form button {
+  border: 0;
+  border-radius: var(--input-radius);
+  padding: 0.75rem 1rem;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-smooth);
+}
+
+.contact-form button:hover:not(:disabled) {
+  background: var(--btn-primary-hover);
+}
+
+.contact-form button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.status-message {
+  min-height: 1.5rem;
+  color: var(--accent);
+}
+
+
+/* ============================================================
+   GLASSMORPHISM SYSTEM
+   ============================================================ */
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px -12px rgb(0 0 0 / 0.4);
+}
+
+/* Firefox fallback (no backdrop-filter support pre-103) */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass {
+    background: rgba(24, 24, 24, 0.95);
+  }
+  .glass-elevated {
+    background: rgba(30, 30, 30, 0.97);
+  }
+}
+
+.glass-elevated {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border-accent);
+  box-shadow:
+    0 20px 40px -20px var(--accent-alpha-20),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Focus indicator for glass interactive elements */
+.glass:focus-visible,
+.glass-elevated:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+
+/* ============================================================
+   MICRO-INTERACTION SYSTEM
+   ============================================================ */
+
+/* Standard card hover lift */
+.card-hover {
+  transition:
+    transform var(--duration-base) var(--ease-smooth),
+    border-color var(--duration-base) var(--ease-smooth),
+    box-shadow var(--duration-base) var(--ease-smooth);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px -16px rgb(0 0 0 / 0.55);
+}
+
+/* Spring-feel hover (bouncy scale) */
+.spring-hover {
+  transition: transform var(--duration-slow) var(--ease-spring);
+}
+
+.spring-hover:hover {
+  transform: scale(1.03);
+}
+
+/* Gold glow on hover */
+.glow-hover {
+  transition:
+    box-shadow var(--duration-base) var(--ease-smooth),
+    border-color var(--duration-base) var(--ease-smooth);
+}
+
+.glow-hover:hover {
+  box-shadow: 0 0 20px var(--accent-alpha-30), 0 0 40px var(--accent-alpha-10);
+  border-color: var(--accent-dark);
+}
+
+
+/* ============================================================
+   NEON GLOW EFFECTS
+   ============================================================ */
+
+.neon-glow {
+  box-shadow:
+    0 0 15px var(--accent-alpha-50),
+    0 0 30px var(--accent-alpha-30);
+}
+
+.neon-text {
+  text-shadow:
+    0 0 10px currentColor,
+    0 0 20px currentColor,
+    0 0 40px currentColor;
+}
+
+.neon-border {
+  border: 1px solid var(--accent);
+  box-shadow:
+    0 0 10px var(--accent-alpha-50),
+    inset 0 0 10px var(--accent-alpha-20);
+}
+
+
+/* ============================================================
+   CSS ANIMATION KEYFRAMES LIBRARY
+   ============================================================ */
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px var(--accent-alpha-40); }
+  50% { box-shadow: 0 0 40px var(--accent-alpha-60); }
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes border-glow {
+  0%, 100% { border-color: var(--accent-alpha-30); }
+  50% { border-color: var(--accent-alpha-60); }
+}
+
+
+/* ============================================================
+   STAGGERED ENTRANCE SYSTEM
+   ============================================================ */
+
+.stagger > * {
+  opacity: 0;
+  animation: fade-up 0.6s var(--ease-out) forwards;
+}
+
+.stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger > *:nth-child(2) { animation-delay: 0.10s; }
+.stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger > *:nth-child(4) { animation-delay: 0.20s; }
+.stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger > *:nth-child(6) { animation-delay: 0.30s; }
+.stagger > *:nth-child(7) { animation-delay: 0.35s; }
+.stagger > *:nth-child(8) { animation-delay: 0.40s; }
+
+/* Entrance utility classes */
+.animate-fade-up {
+  animation: fade-up 0.5s var(--ease-out) both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s var(--ease-out) both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.4s var(--ease-spring) both;
+}
+
+.animate-slide-right {
+  animation: slide-in-right 0.5s var(--ease-out) both;
+}
+
+.animate-slide-left {
+  animation: slide-in-left 0.5s var(--ease-out) both;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-border-glow {
+  animation: border-glow 2.5s ease-in-out infinite;
+}
+
+
+/* ============================================================
+   SKELETON / SHIMMER LOADER
+   ============================================================ */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2s infinite;
+}
+
+
+/* ============================================================
+   PREMIUM TEXTURE OVERLAYS
+   ============================================================ */
+
+/* Film grain — adds subtle analog texture */
+.grain {
+  position: relative;
+}
+
+.grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* Tech grid background */
+.tech-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+
+/* ============================================================
+   ACCESSIBILITY: MOTION SENSITIVITY
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  .hero-beam,
+  .animate-float,
+  .animate-glow-pulse,
+  .animate-border-glow {
+    animation: none !important;
+  }
+
+  .skeleton::after {
+    animation: none !important;
+    display: none;
+  }
+}
+
+
+/* ============================================================
+   ACCESSIBILITY: FOCUS INDICATORS
+   ============================================================ */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Remove default focus ring for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+
+/* ============================================================
+   SCROLL-DRIVEN ANIMATIONS (Progressive Enhancement)
+   ============================================================ */
+
+@supports (animation-timeline: scroll()) {
+  .parallax-subtle {
+    animation: parallax-y linear;
+    animation-timeline: scroll();
+  }
+
+  @keyframes parallax-y {
+    from { transform: translateY(0); }
+    to { transform: translateY(-15%); }
+  }
 }

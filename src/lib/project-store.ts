@@ -21,6 +21,7 @@ export type Activity = {
 
 export type Project = {
   id: string;
+  clientId?: string;
   name: string;
   status: ProjectStatus;
   progress: number; // 0-100 (aggregated)
@@ -74,6 +75,17 @@ export async function getAllProjects(): Promise<Project[]> {
   );
 
   return cached();
+}
+
+export async function getProjectById(id: string): Promise<Project | null> {
+  const projects = await getAllProjects();
+  return projects.find((p) => p.id === id) ?? null;
+}
+
+export async function getProjectsByClient(clientId: string): Promise<Project[]> {
+  const projects = await getAllProjects();
+  // Return projects assigned to this client, or unassigned projects (legacy data)
+  return projects.filter((p) => p.clientId === clientId || !p.clientId);
 }
 
 export async function getDashboardData() {

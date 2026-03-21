@@ -1,7 +1,11 @@
 'use client';
 
+import Image from 'next/image';
 import { Phone, Mail, MessageSquare } from 'lucide-react';
 import { ContactForm } from './contact-form';
+
+const heroPhoto =
+  'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=2200&q=80';
 
 const contactMethods = [
   {
@@ -35,16 +39,25 @@ export default function ContactPage() {
 
   return (
     <main>
-      <div className="bg-chimera-red-urgent py-3 text-center text-white text-sm font-semibold flex items-center justify-center gap-3 sticky top-0 z-40">
+      <div className="bg-chimera-red-urgent py-3 text-center text-white text-sm font-semibold flex items-center justify-center gap-3">
         <span>24/7 EMERGENCY SERVICE AVAILABLE</span>
         <a href={`tel:${phone.replace(/\s+/g, '')}`} className="underline hover:no-underline">
           CALL NOW {phone}
         </a>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 pt-16 pb-24">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 bg-black/40 border border-chimera-gold/40 px-5 py-2 rounded-sm text-sm text-chimera-gold mb-6">
+      <section className="min-h-[55vh] flex items-center relative overflow-hidden">
+        <Image
+          src={heroPhoto}
+          alt="Professional team ready to start your renovation project"
+          fill
+          priority
+          className="object-cover object-center"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-black/65" />
+        <div className="max-w-5xl mx-auto px-6 pt-20 relative z-10 text-center w-full">
+          <div className="inline-flex items-center gap-2 bg-black/50 border border-chimera-gold/40 px-5 py-2 rounded-sm text-sm text-chimera-gold mb-6">
             LET&apos;S BUILD TOGETHER
           </div>
           <h1 className="font-display text-7xl tracking-tighter mb-6">Get in touch</h1>
@@ -52,6 +65,9 @@ export default function ContactPage() {
             Whether you have a small renovation or a full home transformation in mind, we&apos;re here to help.
           </p>
         </div>
+      </section>
+
+      <div className="max-w-5xl mx-auto px-6 pt-16 pb-24">
 
         <div className="grid md:grid-cols-3 gap-6 mb-20">
           {contactMethods.map((method) => (

@@ -9,7 +9,7 @@ Focus: Design System, Global Components, and Home Page (per archive/new/frontend
 - [ ] Spacing, radius, shadow, and layout tokens defined
 - [ ] Button, Card, Badge variants using Tailwind + cva if added
 - [ ] prefers-reduced-motion support in globals.css
-
+'
 ## 2) Global Components
 - [ ] Header: trust strip, logo, nav, Get Estimate + Emergency CTAs, mobile drawer
 - [ ] Footer: 4-column layout, real links, consistent phone/email, UTF-8 copyright

@@ -1,15 +1,33 @@
 import { getDashboardData } from '@/lib/project-store';
+import { cookies } from 'next/headers';
+import { parseToken, findClientById } from '@/lib/client-store';
 
 export default async function DashboardPage() {
   const data = await getDashboardData();
   const current = data.currentProject;
+
+  // Resolve user name from token
+  let userName = '';
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('portalToken')?.value;
+    if (token) {
+      const parsed = parseToken(token);
+      if (parsed) {
+        const client = await findClientById(parsed.clientId);
+        if (client) userName = client.name.split(' ')[0];
+      }
+    }
+  } catch { /* fallback to empty */ }
 
   return (
     <div className="min-h-screen bg-chimera-black p-10">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-12">
           <div>
-            <div className="text-chimera-gold text-sm tracking-widest">WELCOME BACK</div>
+            <div className="text-chimera-gold text-sm tracking-widest">
+              {userName ? `WELCOME BACK, ${userName.toUpperCase()}` : 'WELCOME BACK'}
+            </div>
             <h1 className="font-display text-6xl tracking-tighter">Project Dashboard</h1>
           </div>
           <div className="text-right">
@@ -79,11 +97,38 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="mt-16 pt-12 border-t border-chimera-border text-center">
-          <div className="inline-flex items-center gap-2 text-xs px-6 py-2.5 bg-chimera-surface rounded-3xl text-chimera-text-muted">
-            Sprint 5 • Real data from project-store
+        {/* Activity Feed */}
+        {current && current.activity.length > 0 && (
+          <div className="mt-16 pt-12 border-t border-chimera-border">
+            <div className="uppercase text-xs tracking-widest text-chimera-gold mb-8">RECENT ACTIVITY</div>
+            <div className="space-y-1">
+              {current.activity
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                .slice(0, 5)
+                .map((item) => {
+                  const iconMap = { milestone: 'M', document: 'D', budget: '$', note: 'N' } as const;
+                  const colorMap = {
+                    milestone: 'bg-green-500/10 text-green-400',
+                    document: 'bg-blue-500/10 text-blue-400',
+                    budget: 'bg-chimera-gold/10 text-chimera-gold',
+                    note: 'bg-chimera-surface text-chimera-text-muted',
+                  } as const;
+
+                  return (
+                    <div key={item.id} className="flex items-center gap-4 py-4 border-b border-chimera-border last:border-0">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${colorMap[item.type]}`}>
+                        {iconMap[item.type]}
+                      </div>
+                      <div className="flex-1 text-sm">{item.message}</div>
+                      <div className="text-xs text-chimera-text-muted whitespace-nowrap">
+                        {new Date(item.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

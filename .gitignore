@@ -45,6 +45,9 @@ next-env.d.ts
 # local app data
 .data/
 
+# SSL certs
+nginx/certs/
+
 # screenshots
 screenshots/
 

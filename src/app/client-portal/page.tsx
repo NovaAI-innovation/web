@@ -1,23 +1,44 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function ClientPortalLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setIsLoading(true);
-    
-    // Simulate login with demo token
-    setTimeout(() => {
-      const token = 'demo-token-' + Date.now();
-      localStorage.setItem('portalToken', token);
-      document.cookie = `portalToken=${token}; Path=/; Max-Age=${60 * 60 * 8}; SameSite=Lax`;
+
+    try {
+      const res = await fetch('/api/client-portal/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const payload = await res.json() as {
+        data: { id: string; name: string; email: string } | null;
+        error: { code: string; message: string } | null;
+      };
+
+      if (!res.ok || payload.error) {
+        setError(payload.error?.message ?? 'Login failed');
+        setIsLoading(false);
+        return;
+      }
+
+      localStorage.setItem('portalToken', 'authenticated');
+      localStorage.setItem('portalUser', JSON.stringify(payload.data));
       window.location.href = '/client-portal/dashboard';
-    }, 800);
+    } catch {
+      setError('Something went wrong. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -27,6 +48,12 @@ export default function ClientPortalLogin() {
           <h1 className="font-display text-5xl tracking-tight mb-3 text-white">Client Portal</h1>
           <p className="text-chimera-text-muted">Sign in to access your project</p>
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
@@ -64,8 +91,17 @@ export default function ClientPortalLogin() {
           </button>
         </form>
 
-        <div className="text-center mt-8 text-xs text-chimera-text-muted">
-          Demo credentials: any email + any password
+        <div className="text-center mt-6">
+          <Link href="/client-portal/forgot-password" className="text-chimera-text-muted hover:text-chimera-gold text-sm transition">
+            Forgot your password?
+          </Link>
+        </div>
+
+        <div className="text-center mt-4">
+          <span className="text-chimera-text-muted text-sm">Don&apos;t have an account? </span>
+          <Link href="/client-portal/register" className="text-chimera-gold hover:text-white text-sm transition">
+            Register
+          </Link>
         </div>
       </div>
     </main>

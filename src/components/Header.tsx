@@ -11,6 +11,7 @@ const navLinks = [
   { href: '/services', label: 'Services' },
   { href: '/project-planning', label: 'Project Planning' },
   { href: '/contact', label: 'Contact' },
+  { href: '/client-portal', label: 'Client Portal' },
 ];
 
 export default function Header() {
@@ -50,7 +51,7 @@ export default function Header() {
           </Link>
 
           <div className="hidden md:flex items-center gap-10">
-            {navLinks.map((link) => (
+            {navLinks.filter(l => l.href !== '/client-portal').map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -59,6 +60,12 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+            <Link
+              href="/client-portal"
+              className="text-sm font-medium text-chimera-text-muted border border-chimera-border px-3 py-1.5 rounded-md hover:text-chimera-gold hover:border-chimera-gold/40 transition-colors"
+            >
+              Client Portal
+            </Link>
           </div>
 
           <div className="hidden md:flex items-center gap-4">
@@ -96,14 +103,14 @@ export default function Header() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 md:hidden"
+            className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm md:hidden"
           >
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ duration: 0.24, ease: 'easeOut' }}
-              className="ml-auto h-full w-[86%] max-w-sm bg-black border-l border-chimera-border p-6"
+              className="ml-auto isolate h-full w-[86%] max-w-sm border-l border-chimera-border bg-[rgba(17,17,17,0.98)] p-6 shadow-[-24px_0_52px_rgba(0,0,0,0.72)]"
             >
               <div className="flex justify-between items-center mb-8">
                 <Image

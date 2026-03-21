@@ -1,8 +1,12 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+
+const heroPhoto =
+  'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=2200&q=80';
 
 const steps = [
   { id: 1, title: 'Scope', description: 'What areas need work?' },
@@ -22,6 +26,8 @@ export default function ProjectPlanningPage() {
     phone: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -39,9 +45,34 @@ export default function ProjectPlanningPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setSubmitError('');
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch('/api/project-planning/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const payload = await res.json() as {
+        data: { id: string; message: string } | null;
+        error: { message: string } | null;
+      };
+
+      if (!res.ok || payload.error) {
+        setSubmitError(payload.error?.message ?? 'Failed to submit. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      setSubmitted(true);
+    } catch {
+      setSubmitError('Something went wrong. Please try again.');
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -70,8 +101,30 @@ export default function ProjectPlanningPage() {
 
   return (
     <main className="bg-chimera-black min-h-screen">
+      <section className="min-h-[50vh] flex items-center relative overflow-hidden">
+        <Image
+          src={heroPhoto}
+          alt="Architectural blueprints and project planning documents"
+          fill
+          priority
+          className="object-cover object-center"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-black/70" />
+        <div className="max-w-4xl mx-auto px-6 pt-20 relative z-10">
+          <div className="uppercase tracking-[4px] text-chimera-gold text-sm mb-6">START YOUR BUILD</div>
+          <h1 className="font-display text-7xl leading-none tracking-tight mb-6">
+            PLAN YOUR
+            <br />
+            PROJECT
+          </h1>
+          <p className="text-xl text-chimera-text-secondary max-w-lg">
+            Answer four quick questions and we&apos;ll match you with the right plan.
+          </p>
+        </div>
+      </section>
+
       <div className="max-w-4xl mx-auto px-6 py-20">
-        <h1 className="sr-only">Project Planning Wizard</h1>
         <div className="flex justify-between mb-16">
           {steps.map((step) => (
             <div
@@ -209,6 +262,12 @@ export default function ProjectPlanningPage() {
             )}
           </AnimatePresence>
 
+          {submitError && (
+            <div className="mt-8 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+              {submitError}
+            </div>
+          )}
+
           <div className="flex justify-between mt-16">
             <button
               type="button"
@@ -230,9 +289,10 @@ export default function ProjectPlanningPage() {
             ) : (
               <button
                 type="submit"
-                className="bg-white text-black px-12 py-4 rounded-md font-semibold hover:bg-chimera-gold transition-colors"
+                disabled={isSubmitting}
+                className="bg-white text-black px-12 py-4 rounded-md font-semibold hover:bg-chimera-gold transition-colors disabled:opacity-70"
               >
-                Submit Project Brief
+                {isSubmitting ? 'Submitting...' : 'Submit Project Brief'}
               </button>
             )}
           </div>

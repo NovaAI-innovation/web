@@ -10,8 +10,15 @@ import { logEvent } from "@/lib/observability";
 import { getRequestId } from "@/lib/request-id";
 import { rateLimit } from "@/lib/rate-limit";
 
+const attachmentSchema = z.object({
+  filename: z.string().min(1),
+  originalName: z.string().min(1),
+  size: z.number().positive(),
+});
+
 const createMessageSchema = z.object({
   body: z.string().trim().min(2).max(2000),
+  attachment: attachmentSchema.optional(),
 });
 
 export async function GET(request: Request) {
@@ -99,6 +106,7 @@ export async function POST(request: Request) {
     const message = await addPortalMessage({
       author: "client",
       body: parsed.data.body,
+      ...(parsed.data.attachment ? { attachment: parsed.data.attachment } : {}),
     });
 
     // Basic "real-time" experience: immediate PM acknowledgement event.

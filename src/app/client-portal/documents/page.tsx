@@ -9,6 +9,7 @@ interface UploadedFile {
   type: string;
   uploadedAt: string;
   status: 'uploading' | 'success' | 'error';
+  filename?: string;
 }
 
 export default function DocumentsPage() {
@@ -78,12 +79,13 @@ export default function DocumentsPage() {
           setFiles(prev => 
             prev.map(f => 
               f.id === tempId 
-                ? { 
-                    ...f, 
-                    id: result.data.id, 
+                ? {
+                    ...f,
+                    id: result.data.id,
+                    filename: result.data.filename,
                     status: 'success' as const,
-                    uploadedAt: result.data.uploadedAt || f.uploadedAt 
-                  } 
+                    uploadedAt: result.data.uploadedAt || f.uploadedAt
+                  }
                 : f
             )
           );
@@ -96,8 +98,16 @@ export default function DocumentsPage() {
     }
   };
 
-  const deleteFile = (id: string) => {
+  const deleteFile = async (id: string, filename?: string) => {
+    const target = filename || id;
     setFiles(prev => prev.filter(f => f.id !== id));
+    try {
+      await fetch(`/api/client-portal/documents/${encodeURIComponent(target)}`, {
+        method: 'DELETE',
+      });
+    } catch {
+      // File already removed from UI; if API fails, it will be cleaned up later
+    }
   };
 
   // Load documents on mount
@@ -106,11 +116,12 @@ export default function DocumentsPage() {
 
     void fetch('/api/client-portal/documents')
       .then((res) => res.json())
-      .then((result: { data?: Array<{ id: string; name: string; size: number; uploadedAt: string }> }) => {
+      .then((result: { data?: Array<{ id: string; name: string; filename: string; size: number; uploadedAt: string }> }) => {
         if (!active || !result.data) return;
         const mapped = result.data.map((f) => ({
           id: f.id,
           name: f.name,
+          filename: f.filename,
           size: f.size,
           type: f.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
           uploadedAt: f.uploadedAt.split('T')[0],
@@ -212,13 +223,17 @@ export default function DocumentsPage() {
                 )}
                 
                 {file.status === 'success' && (
-                  <button className="text-xs px-5 py-2 border border-chimera-border rounded-full hover:bg-white/5 transition">
+                  <a
+                    href={`/api/client-portal/documents/download/${file.filename || file.id}`}
+                    download
+                    className="text-xs px-5 py-2 border border-chimera-border rounded-full hover:bg-white/5 transition inline-block"
+                  >
                     DOWNLOAD
-                  </button>
+                  </a>
                 )}
 
                 <button 
-                  onClick={() => deleteFile(file.id)}
+                  onClick={() => void deleteFile(file.id, file.filename)}
                   className="opacity-40 hover:opacity-100 text-red-400 transition"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

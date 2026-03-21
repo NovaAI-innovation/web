@@ -1,6 +1,13 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Paperclip, X } from "lucide-react";
+
+type MessageAttachment = {
+  filename: string;
+  originalName: string;
+  size: number;
+};
 
 type PortalMessage = {
   id: string;
@@ -8,6 +15,7 @@ type PortalMessage = {
   body: string;
   createdAt: string;
   readByClient: boolean;
+  attachment?: MessageAttachment;
 };
 
 type MessagesResult = {
@@ -25,6 +33,8 @@ export default function MessagesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadMessages = useCallback(async () => {
     try {
@@ -71,15 +81,43 @@ export default function MessagesPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const body = draft.trim();
-    if (!body) return;
+    if (!body && !attachedFile) return;
 
     setIsSending(true);
     setError(null);
     try {
+      let attachmentData: MessageAttachment | undefined;
+
+      // Upload file first if attached
+      if (attachedFile) {
+        const formData = new FormData();
+        formData.append("file", attachedFile);
+
+        const uploadRes = await fetch("/api/client-portal/documents/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const uploadPayload = (await uploadRes.json()) as {
+          data: { filename: string; name: string; size: number } | null;
+          error: { message: string } | null;
+        };
+        if (!uploadRes.ok || !uploadPayload.data) {
+          throw new Error(uploadPayload.error?.message ?? "Failed to upload file");
+        }
+        attachmentData = {
+          filename: uploadPayload.data.filename,
+          originalName: uploadPayload.data.name ?? attachedFile.name,
+          size: uploadPayload.data.size ?? attachedFile.size,
+        };
+      }
+
       const response = await fetch("/api/client-portal/messages", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({
+          body: body || `Shared a file: ${attachedFile?.name ?? "attachment"}`,
+          attachment: attachmentData,
+        }),
       });
       const payload = (await response.json()) as {
         data: { message: PortalMessage } | null;
@@ -89,6 +127,8 @@ export default function MessagesPage() {
         throw new Error(payload.error?.message ?? "Failed to send message");
       }
       setDraft("");
+      setAttachedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       await loadMessages();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Failed to send message");
@@ -165,6 +205,20 @@ export default function MessagesPage() {
                     {timestamp}
                   </div>
                   <p className={isClient ? "text-black" : "text-white"}>{message.body}</p>
+                  {message.attachment && (
+                    <a
+                      href={`/api/client-portal/documents/download/${message.attachment.filename}`}
+                      download
+                      className={`mt-2 inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition ${
+                        isClient
+                          ? "bg-black/10 text-black hover:bg-black/20"
+                          : "bg-chimera-gold/10 text-chimera-gold hover:bg-chimera-gold/20"
+                      }`}
+                    >
+                      <Paperclip className="w-3 h-3" />
+                      {message.attachment.originalName}
+                    </a>
+                  )}
                 </article>
               );
             })}
@@ -184,8 +238,49 @@ export default function MessagesPage() {
               placeholder="Share an update or ask a question..."
             />
 
+            {attachedFile && (
+              <div className="mt-3 flex items-center gap-3 px-4 py-2 bg-chimera-surface rounded-xl border border-chimera-border">
+                <Paperclip className="w-4 h-4 text-chimera-gold flex-shrink-0" />
+                <span className="text-sm text-white truncate">{attachedFile.name}</span>
+                <span className="text-xs text-chimera-text-muted">
+                  {(attachedFile.size / 1024).toFixed(0)} KB
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAttachedFile(null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  className="ml-auto text-chimera-text-muted hover:text-red-400 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setAttachedFile(file);
+              }}
+            />
+
             <div className="mt-4 flex items-center justify-between">
-              <div className="text-xs text-chimera-text-muted">Messages sync automatically</div>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 text-xs text-chimera-text-muted hover:text-chimera-gold transition"
+                >
+                  <Paperclip className="w-4 h-4" />
+                  Attach File
+                </button>
+                <span className="text-xs text-chimera-text-muted">Messages sync automatically</span>
+              </div>
               <button
                 type="submit"
                 disabled={isSending}

@@ -4,12 +4,19 @@ import { revalidateTag, unstable_cache } from "next/cache";
 
 export type PortalMessageAuthor = "client" | "pm" | "system";
 
+export type MessageAttachment = {
+  filename: string;
+  originalName: string;
+  size: number;
+};
+
 export type PortalMessage = {
   id: string;
   author: PortalMessageAuthor;
   body: string;
   createdAt: string;
   readByClient: boolean;
+  attachment?: MessageAttachment;
 };
 
 type PortalMessagesFile = {
@@ -65,6 +72,7 @@ export async function getPortalMessages(): Promise<PortalMessage[]> {
 export async function addPortalMessage(input: {
   author: PortalMessageAuthor;
   body: string;
+  attachment?: MessageAttachment;
 }): Promise<PortalMessage> {
   await ensureMessagesFile();
   const filePath = resolveMessagesPath();
@@ -77,6 +85,7 @@ export async function addPortalMessage(input: {
     body: input.body,
     createdAt: new Date().toISOString(),
     readByClient: input.author === "client",
+    ...(input.attachment ? { attachment: input.attachment } : {}),
   };
 
   parsed.messages.push(message);

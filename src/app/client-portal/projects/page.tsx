@@ -37,7 +37,7 @@ export default async function ProjectsPage() {
 
         <div className="grid gap-6">
           {mappedProjects.map(project => (
-            <div key={project.id} className="glass rounded-3xl p-10">
+            <a key={project.id} href={`/client-portal/projects/${project.id}`} className="glass rounded-3xl p-10 block hover:border-chimera-gold/30 border border-transparent transition-all">
               <div className="flex flex-col md:flex-row gap-10 mb-10">
                 <div className="flex-1">
                   <div className="uppercase text-xs tracking-[2px] text-chimera-gold mb-3">{project.status}</div>
@@ -80,7 +80,7 @@ export default async function ProjectsPage() {
                   ))}
                 </div>
               </div>
-            </div>
+            </a>
           ))}
         </div>
       </div>
