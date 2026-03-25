@@ -54,6 +54,18 @@ export default function ClientPortalLayout({
   }, [isAuthenticated, isHydrated, isPublicRoute, router]);
 
   useEffect(() => {
+    if (isPublicRoute) return;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, [isPublicRoute]);
+
+  useEffect(() => {
     if (!isHydrated || !isAuthenticated || isPublicRoute) return;
     if (isMessagesRoute) {
       setUnreadCount(0);
@@ -117,8 +129,8 @@ export default function ClientPortalLayout({
   const activeSection = navLinks.find((link) => isActive(link.href))?.label ?? 'Client Portal';
 
   return (
-    <div className="h-[calc(100vh-109px)] bg-chimera-black flex overflow-hidden">
-      <aside className="hidden lg:flex w-72 xl:w-80 shrink-0 border-r border-chimera-border bg-chimera-dark flex-col h-full">
+    <div className="fixed inset-x-0 bottom-0 top-[109px] bg-chimera-black flex overflow-hidden">
+      <aside className="hidden lg:flex fixed left-0 top-[109px] bottom-0 w-72 xl:w-80 border-r border-chimera-border bg-chimera-dark flex-col">
         <div className="px-6 py-6 border-b border-chimera-border">
           <div className="font-display text-2xl tracking-tight">
             <span className="text-chimera-gold">Chimera</span> Portal
@@ -166,7 +178,7 @@ export default function ClientPortalLayout({
         </div>
       </aside>
 
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden lg:ml-72 xl:ml-80">
         <header className="shrink-0 border-b border-chimera-border bg-chimera-dark/80 px-6 lg:px-8 py-5 flex items-center justify-between">
           <div>
             <div className="text-xs tracking-[3px] uppercase text-chimera-gold">Client Portal</div>

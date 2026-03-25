@@ -41,6 +41,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }).catch(() => router.replace('/admin'));
   }, [isLoginPage, router]);
 
+  useEffect(() => {
+    if (isLoginPage) return;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, [isLoginPage]);
+
   if (isLoginPage) return <>{children}</>;
 
   const handleSignOut = async () => {
@@ -51,9 +63,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
   return (
-    <div className="h-[calc(100vh-109px)] bg-chimera-black flex overflow-hidden">
+    <div className="fixed inset-x-0 bottom-0 top-[109px] bg-chimera-black flex overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-72 xl:w-80 shrink-0 border-r border-chimera-border bg-chimera-dark flex flex-col h-full">
+      <aside className="fixed left-0 top-[109px] bottom-0 w-72 xl:w-80 border-r border-chimera-border bg-chimera-dark flex flex-col">
         {/* Brand */}
         <div className="px-6 py-6 border-b border-chimera-border">
           <div className="flex items-center gap-3">
@@ -100,7 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main */}
-      <main className="flex-1 min-w-0 overflow-auto">
+      <main className="flex-1 min-w-0 overflow-auto ml-72 xl:ml-80">
         {children}
       </main>
     </div>
