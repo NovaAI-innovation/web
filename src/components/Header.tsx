@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { BadgeCheck, Clock, Menu, ShieldCheck, Phone, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -16,36 +17,38 @@ const navLinks = [
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
   const phone = process.env.NEXT_PUBLIC_PHONE || '+1 (780) 934-8696';
+  const isPortalRoute = pathname.startsWith('/client-portal') || pathname.startsWith('/admin');
 
   return (
     <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-md border-b border-chimera-border">
-      <div className="bg-chimera-surface py-1.5 text-xs border-b border-chimera-border/60">
+      <div className={`bg-chimera-surface border-b border-chimera-border/60 ${isPortalRoute ? 'py-2 text-sm' : 'py-1.5 text-xs'}`}>
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-center gap-6 md:gap-8 text-chimera-text-muted">
           <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-chimera-gold" />
+            <ShieldCheck className={`${isPortalRoute ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-chimera-gold`} />
             <span>Licensed</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <BadgeCheck className="w-3.5 h-3.5 text-chimera-gold" />
+            <BadgeCheck className={`${isPortalRoute ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-chimera-gold`} />
             <span>Insured</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-chimera-gold" />
+            <ShieldCheck className={`${isPortalRoute ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-chimera-gold`} />
             <span>BBB A+</span>
           </div>
         </div>
       </div>
 
       <nav className="max-w-7xl mx-auto px-6">
-        <div className="flex items-center justify-between h-20">
+        <div className={`flex items-center justify-between ${isPortalRoute ? 'h-24' : 'h-20'}`}>
           <Link href="/" className="flex items-center" aria-label="Chimera Enterprise Home">
             <Image
               src="/brand/final/chimera-horizontal-on-dark.svg"
               alt="Chimera Enterprise"
               width={280}
               height={56}
-              className="h-10 w-auto"
+              className={`${isPortalRoute ? 'h-12' : 'h-10'} w-auto`}
               priority
               unoptimized
             />
@@ -56,14 +59,14 @@ export default function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-chimera-text-secondary hover:text-white card-hover"
+                className={`${isPortalRoute ? 'text-base' : 'text-sm'} font-medium text-chimera-text-secondary hover:text-white card-hover`}
               >
                 {link.label}
               </Link>
             ))}
             <Link
               href="/client-portal"
-              className="text-sm font-medium text-chimera-text-muted border border-chimera-border px-3 py-1.5 rounded-md hover:text-chimera-gold hover:border-chimera-gold/40 transition-colors"
+              className={`${isPortalRoute ? 'text-base px-4 py-2' : 'text-sm px-3 py-1.5'} font-medium text-chimera-text-muted border border-chimera-border rounded-md hover:text-chimera-gold hover:border-chimera-gold/40 transition-colors`}
             >
               Client Portal
             </Link>
@@ -72,17 +75,17 @@ export default function Header() {
           <div className="hidden md:flex items-center gap-4">
             <Link
               href="/project-planning"
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-chimera-gold text-black rounded-md hover:bg-chimera-gold-light transition-colors"
+              className={`flex items-center gap-2 ${isPortalRoute ? 'px-6 py-3 text-base' : 'px-5 py-2.5 text-sm'} font-semibold bg-chimera-gold text-black rounded-md hover:bg-chimera-gold-light transition-colors`}
             >
-              <Phone className="w-4 h-4" />
+              <Phone className={`${isPortalRoute ? 'w-5 h-5' : 'w-4 h-4'}`} />
               Get Estimate
             </Link>
 
             <a
               href={`tel:${phone.replace(/\s+/g, '')}`}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-chimera-red-urgent text-white rounded-md hover:brightness-110 transition-colors"
+              className={`flex items-center gap-2 ${isPortalRoute ? 'px-6 py-3 text-base' : 'px-5 py-2.5 text-sm'} font-semibold bg-chimera-red-urgent text-white rounded-md hover:brightness-110 transition-colors`}
             >
-              <Clock className="w-4 h-4" />
+              <Clock className={`${isPortalRoute ? 'w-5 h-5' : 'w-4 h-4'}`} />
               Emergency
             </a>
           </div>

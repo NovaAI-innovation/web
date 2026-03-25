@@ -51,56 +51,56 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
   return (
-    <div className="min-h-screen bg-chimera-black flex">
+    <div className="h-[calc(100vh-109px)] bg-chimera-black flex overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-56 shrink-0 border-r border-chimera-border bg-chimera-dark flex flex-col sticky top-0 h-screen">
+      <aside className="w-72 xl:w-80 shrink-0 border-r border-chimera-border bg-chimera-dark flex flex-col h-full">
         {/* Brand */}
-        <div className="px-5 py-5 border-b border-chimera-border">
-          <div className="flex items-center gap-2.5">
-            <Building2 className="w-5 h-5 text-chimera-gold" />
-            <span className="font-display text-lg tracking-tight">
+        <div className="px-6 py-6 border-b border-chimera-border">
+          <div className="flex items-center gap-3">
+            <Building2 className="w-6 h-6 text-chimera-gold" />
+            <span className="font-display text-2xl tracking-tight">
               <span className="text-chimera-gold">Chimera</span>
-              <span className="text-chimera-text-muted text-sm ml-1.5 font-sans">Admin</span>
+              <span className="text-chimera-text-muted text-base ml-1.5 font-sans">Admin</span>
             </span>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-4 py-5 space-y-1 overflow-hidden">
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = isActive(href);
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition group ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base transition group ${
                   active
                     ? 'bg-chimera-surface text-white'
                     : 'text-chimera-text-secondary hover:bg-chimera-surface/50 hover:text-white'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${active ? 'text-chimera-gold' : 'text-current'}`} />
+                <Icon className={`w-5 h-5 ${active ? 'text-chimera-gold' : 'text-current'}`} />
                 <span className="flex-1">{label}</span>
-                {active && <ChevronRight className="w-3 h-3 text-chimera-text-muted" />}
+                {active && <ChevronRight className="w-4 h-4 text-chimera-text-muted" />}
               </Link>
             );
           })}
         </nav>
 
         {/* Sign out */}
-        <div className="px-3 py-4 border-t border-chimera-border">
+        <div className="px-4 py-5 border-t border-chimera-border">
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-chimera-text-muted hover:text-white hover:bg-chimera-surface/50 transition"
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-base text-chimera-text-muted hover:text-white hover:bg-chimera-surface/50 transition"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-5 h-5" />
             Sign Out
           </button>
         </div>
       </aside>
 
       {/* Main */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 min-w-0 overflow-auto">
         {children}
       </main>
     </div>

@@ -3,16 +3,16 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Menu, X } from 'lucide-react';
+import { ArrowLeft, ChevronRight, FileText, FolderKanban, LayoutDashboard, LogOut, MessageSquare, Settings } from 'lucide-react';
 import { ToastProvider } from '@/components/portal/ToastProvider';
 
 const navLinks = [
-  { href: '/client-portal/dashboard', label: 'Dashboard' },
-  { href: '/client-portal/projects', label: 'Projects' },
-  { href: '/client-portal/documents', label: 'Documents' },
-  { href: '/client-portal/messages', label: 'Messages', hasBadge: true },
-  { href: '/client-portal/invoices', label: 'Invoices' },
-  { href: '/client-portal/settings', label: 'Settings' },
+  { href: '/client-portal/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/client-portal/projects', label: 'Projects', icon: FolderKanban },
+  { href: '/client-portal/documents', label: 'Documents', icon: FileText },
+  { href: '/client-portal/messages', label: 'Messages', icon: MessageSquare, hasBadge: true },
+  { href: '/client-portal/invoices', label: 'Invoices', icon: FileText },
+  { href: '/client-portal/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function ClientPortalLayout({
@@ -26,7 +26,6 @@ export default function ClientPortalLayout({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userName, setUserName] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isPublicRoute = pathname === '/client-portal' || pathname === '/client-portal/register';
   const isMessagesRoute = pathname.startsWith('/client-portal/messages');
 
@@ -47,10 +46,6 @@ export default function ClientPortalLayout({
       setIsHydrated(true);
     }
   }, []);
-
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     if (isHydrated && !isAuthenticated && !isPublicRoute) {
@@ -119,118 +114,97 @@ export default function ClientPortalLayout({
     }
     return pathname.startsWith(href);
   };
+  const activeSection = navLinks.find((link) => isActive(link.href))?.label ?? 'Client Portal';
 
   return (
-    <div className="h-[calc(100vh-109px)] bg-chimera-black flex flex-col overflow-hidden">
-      <nav className="border-b border-chimera-border bg-chimera-dark sticky top-[109px] z-40">
-        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4 sm:py-5 flex items-center justify-between">
-          {/* Left: Back + Brand */}
-          <div className="flex items-center gap-4 sm:gap-6">
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 text-sm text-chimera-text-muted hover:text-white transition"
-              title="Back to main site"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Main Site</span>
-            </Link>
-            <div className="h-5 w-px bg-chimera-border hidden sm:block" />
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span className="font-display text-lg sm:text-xl tracking-tight text-chimera-gold">Chimera</span>
-              <div className="font-display text-xl sm:text-2xl tracking-tight">Portal</div>
-            </div>
+    <div className="h-[calc(100vh-109px)] bg-chimera-black flex overflow-hidden">
+      <aside className="hidden lg:flex w-72 xl:w-80 shrink-0 border-r border-chimera-border bg-chimera-dark flex-col h-full">
+        <div className="px-6 py-6 border-b border-chimera-border">
+          <div className="font-display text-2xl tracking-tight">
+            <span className="text-chimera-gold">Chimera</span> Portal
           </div>
+          <div className="text-sm text-chimera-text-muted mt-2">Client Workspace</div>
+        </div>
 
-          {/* Desktop Nav */}
-          <div className="hidden lg:flex items-center gap-6 text-sm">
+        <nav className="flex-1 px-4 py-5 space-y-1 overflow-hidden">
+          {navLinks.map(({ href, label, icon: Icon, hasBadge }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base transition ${
+                  active
+                    ? 'bg-chimera-surface text-white'
+                    : 'text-chimera-text-secondary hover:bg-chimera-surface/50 hover:text-white'
+                }`}
+              >
+                <Icon className={`w-5 h-5 ${active ? 'text-chimera-gold' : 'text-current'}`} />
+                <span className="flex-1">{label}</span>
+                {hasBadge && unreadCount > 0 && !isMessagesRoute && (
+                  <span className="text-xs bg-chimera-gold text-black px-2 py-0.5 rounded-full font-semibold">
+                    {unreadCount}
+                  </span>
+                )}
+                {active && <ChevronRight className="w-4 h-4 text-chimera-text-muted" />}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="px-4 py-5 border-t border-chimera-border">
+          {userName && (
+            <div className="text-sm text-chimera-text-muted mb-3 px-2">{userName}</div>
+          )}
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-base text-chimera-text-muted hover:text-white hover:bg-chimera-surface/50 transition"
+          >
+            <LogOut className="w-5 h-5" />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <header className="shrink-0 border-b border-chimera-border bg-chimera-dark/80 px-6 lg:px-8 py-5 flex items-center justify-between">
+          <div>
+            <div className="text-xs tracking-[3px] uppercase text-chimera-gold">Client Portal</div>
+            <h1 className="font-display text-3xl lg:text-4xl tracking-tight text-white">{activeSection}</h1>
+          </div>
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-base text-chimera-text-muted hover:text-white transition"
+            title="Back to main site"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Main Site</span>
+          </Link>
+        </header>
+
+        <div className="lg:hidden shrink-0 border-b border-chimera-border bg-chimera-dark px-3 py-3 overflow-x-auto">
+          <div className="flex items-center gap-2 min-w-max">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`relative py-1 transition ${
+                className={`px-3 py-2 rounded-lg text-sm transition ${
                   isActive(link.href)
-                    ? 'text-chimera-gold'
-                    : 'text-chimera-text-secondary hover:text-chimera-gold'
+                    ? 'bg-chimera-gold text-black'
+                    : 'bg-chimera-surface text-chimera-text-secondary hover:text-white'
                 }`}
               >
                 {link.label}
-                {link.hasBadge && unreadCount > 0 && !isMessagesRoute && (
-                  <span className="ml-1 text-xs bg-chimera-gold text-black px-1.5 py-0.5 rounded-full font-semibold">
-                    {unreadCount}
-                  </span>
-                )}
-                {isActive(link.href) && (
-                  <span className="absolute -bottom-[19px] left-0 right-0 h-px bg-chimera-gold" />
-                )}
               </Link>
             ))}
-
-            {userName && (
-              <span className="text-chimera-text-muted text-xs border-l border-chimera-border pl-4 ml-2">
-                {userName}
-              </span>
-            )}
-            <button
-              onClick={handleSignOut}
-              className="text-chimera-text-muted hover:text-white transition text-xs"
-            >
-              Sign Out
-            </button>
           </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 text-chimera-text-muted hover:text-white transition"
-            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
 
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-chimera-border bg-chimera-dark">
-            <div className="max-w-6xl mx-auto px-4 py-4 space-y-1 bg-chimera-dark">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`flex items-center justify-between px-4 py-3 rounded-xl transition ${
-                    isActive(link.href)
-                      ? 'bg-chimera-gold text-black'
-                      : 'bg-chimera-dark text-chimera-text-secondary hover:bg-chimera-surface hover:text-white'
-                  }`}
-                >
-                  <span>{link.label}</span>
-                  {link.hasBadge && unreadCount > 0 && !isMessagesRoute && (
-                    <span className="text-xs bg-chimera-gold text-black px-2 py-0.5 rounded-full font-semibold">
-                      {unreadCount}
-                    </span>
-                  )}
-                </Link>
-              ))}
-
-              <div className="border-t border-chimera-border mt-3 pt-3 px-4">
-                {userName && (
-                  <div className="text-sm text-chimera-text-muted mb-3">{userName}</div>
-                )}
-                <button
-                  onClick={handleSignOut}
-                  className="text-sm text-chimera-text-muted hover:text-white transition"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </nav>
-
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <div className="flex-1 min-h-0 overflow-auto">
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </div>
       </div>
     </div>
   );
