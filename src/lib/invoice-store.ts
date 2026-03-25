@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { unstable_cache } from "next/cache";
+import { revalidateTag, unstable_cache } from "next/cache";
 
 export type InvoiceStatus = "paid" | "pending" | "overdue";
 
@@ -25,6 +25,7 @@ export type Invoice = {
   tax: number;
   total: number;
   lineItems: InvoiceLineItem[];
+  isFinalInvoice?: boolean;
 };
 
 type InvoicesFile = {
@@ -78,7 +79,12 @@ export async function getInvoicesByProject(projectId: string): Promise<Invoice[]
 
 export async function getInvoicesByClient(clientId: string): Promise<Invoice[]> {
   const invoices = await getAllInvoices();
-  return invoices.filter((inv) => inv.clientId === clientId || !inv.clientId);
+  return invoices.filter((inv) => inv.clientId === clientId);
+}
+
+export async function hasProjectUnpaidBalance(projectId: string): Promise<boolean> {
+  const invoices = await getInvoicesByProject(projectId);
+  return invoices.some((inv) => inv.status !== 'paid');
 }
 
 export async function getInvoiceSummaryByClient(clientId: string) {
@@ -101,24 +107,51 @@ export async function getInvoiceSummaryByClient(clientId: string) {
   };
 }
 
-export async function getInvoiceSummary() {
-  const invoices = await getAllInvoices();
-  const totalOutstanding = invoices
-    .filter((i) => i.status !== "paid")
-    .reduce((sum, i) => sum + i.total, 0);
-  const totalPaid = invoices
-    .filter((i) => i.status === "paid")
-    .reduce((sum, i) => sum + i.total, 0);
 
-  return {
-    invoices,
-    totalInvoices: invoices.length,
-    totalOutstanding,
-    totalPaid,
-    overdueCount: invoices.filter((i) => i.status === "overdue").length,
-    pendingCount: invoices.filter((i) => i.status === "pending").length,
-    paidCount: invoices.filter((i) => i.status === "paid").length,
-  };
+// --- Write helpers (bypass cache) ---
+
+async function readInvoicesRaw(): Promise<InvoicesFile> {
+  await ensureFile();
+  const raw = await readFile(resolveInvoicesPath(), "utf-8");
+  return raw ? (JSON.parse(raw) as InvoicesFile) : defaultInvoicesFile;
+}
+
+async function writeInvoicesRaw(data: InvoicesFile): Promise<void> {
+  await writeFile(resolveInvoicesPath(), JSON.stringify(data, null, 2), "utf-8");
+  revalidateTag("invoices", "max");
+}
+
+// --- CRUD ---
+
+export async function createInvoice(
+  input: Omit<Invoice, "id">,
+): Promise<Invoice> {
+  const data = await readInvoicesRaw();
+  const invoice: Invoice = { ...input, id: `inv-${Date.now()}` };
+  data.invoices.push(invoice);
+  await writeInvoicesRaw(data);
+  return invoice;
+}
+
+export async function updateInvoice(
+  id: string,
+  updates: Partial<Omit<Invoice, "id">>,
+): Promise<Invoice | null> {
+  const data = await readInvoicesRaw();
+  const index = data.invoices.findIndex((i) => i.id === id);
+  if (index === -1) return null;
+  data.invoices[index] = { ...data.invoices[index], ...updates, id };
+  await writeInvoicesRaw(data);
+  return data.invoices[index];
+}
+
+export async function deleteInvoice(id: string): Promise<boolean> {
+  const data = await readInvoicesRaw();
+  const before = data.invoices.length;
+  data.invoices = data.invoices.filter((i) => i.id !== id);
+  if (data.invoices.length === before) return false;
+  await writeInvoicesRaw(data);
+  return true;
 }
 
 function getSeedData(): InvoicesFile {

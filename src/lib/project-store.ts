@@ -84,14 +84,12 @@ export async function getProjectById(id: string): Promise<Project | null> {
 
 export async function getProjectsByClient(clientId: string): Promise<Project[]> {
   const projects = await getAllProjects();
-  // Return projects assigned to this client, or unassigned projects (legacy data)
-  return projects.filter((p) => p.clientId === clientId || !p.clientId);
+  return projects.filter((p) => p.clientId === clientId);
 }
 
-export async function getDashboardData() {
-  const projects = await getAllProjects();
+export async function getDashboardData(clientId: string) {
+  const projects = await getProjectsByClient(clientId);
 
-  // For now, return the first active project as "current" + summary stats
   const activeProject = projects.find((p) => p.status === "active") || projects[0];
 
   return {
@@ -102,6 +100,128 @@ export async function getDashboardData() {
     totalBudgetAllocated: projects.reduce((sum, p) => sum + p.budget.allocated, 0),
     totalBudgetSpent: projects.reduce((sum, p) => sum + p.budget.spent, 0),
   };
+}
+
+// --- Write helpers (bypass cache) ---
+
+async function readProjectsRaw(): Promise<ProjectsFile> {
+  await ensureFile();
+  const raw = await readFile(resolveProjectsPath(), "utf-8");
+  return raw ? (JSON.parse(raw) as ProjectsFile) : defaultProjectsFile;
+}
+
+async function writeProjectsRaw(data: ProjectsFile): Promise<void> {
+  await writeFile(resolveProjectsPath(), JSON.stringify(data, null, 2), "utf-8");
+  revalidateTag("projects", "max");
+}
+
+// --- CRUD ---
+
+export async function createProject(
+  input: Omit<Project, "id" | "updatedAt"> & { clientId?: string },
+): Promise<Project> {
+  const data = await readProjectsRaw();
+  const project: Project = {
+    ...input,
+    id: `proj-${Date.now()}`,
+    updatedAt: new Date().toISOString(),
+  };
+  data.projects.push(project);
+  await writeProjectsRaw(data);
+  return project;
+}
+
+export async function updateProject(
+  id: string,
+  updates: Partial<Omit<Project, "id">>,
+): Promise<Project | null> {
+  const data = await readProjectsRaw();
+  const index = data.projects.findIndex((p) => p.id === id);
+  if (index === -1) return null;
+  data.projects[index] = {
+    ...data.projects[index],
+    ...updates,
+    id,
+    updatedAt: new Date().toISOString(),
+  };
+  await writeProjectsRaw(data);
+  return data.projects[index];
+}
+
+export async function deleteProject(id: string): Promise<boolean> {
+  const data = await readProjectsRaw();
+  const before = data.projects.length;
+  data.projects = data.projects.filter((p) => p.id !== id);
+  if (data.projects.length === before) return false;
+  await writeProjectsRaw(data);
+  return true;
+}
+
+export async function addMilestone(
+  projectId: string,
+  input: Omit<Milestone, "id">,
+): Promise<Milestone | null> {
+  const data = await readProjectsRaw();
+  const index = data.projects.findIndex((p) => p.id === projectId);
+  if (index === -1) return null;
+  const milestone: Milestone = { ...input, id: `m-${Date.now()}` };
+  data.projects[index].milestones.push(milestone);
+  data.projects[index].updatedAt = new Date().toISOString();
+  await writeProjectsRaw(data);
+  return milestone;
+}
+
+export async function updateMilestone(
+  projectId: string,
+  milestoneId: string,
+  updates: Partial<Omit<Milestone, "id">>,
+): Promise<Milestone | null> {
+  const data = await readProjectsRaw();
+  const pi = data.projects.findIndex((p) => p.id === projectId);
+  if (pi === -1) return null;
+  const mi = data.projects[pi].milestones.findIndex((m) => m.id === milestoneId);
+  if (mi === -1) return null;
+  data.projects[pi].milestones[mi] = { ...data.projects[pi].milestones[mi], ...updates };
+  data.projects[pi].updatedAt = new Date().toISOString();
+  // Recalculate progress
+  const milestones = data.projects[pi].milestones;
+  if (milestones.length > 0) {
+    data.projects[pi].progress = Math.round(
+      (milestones.filter((m) => m.completed).length / milestones.length) * 100,
+    );
+  }
+  await writeProjectsRaw(data);
+  return data.projects[pi].milestones[mi];
+}
+
+export async function deleteMilestone(projectId: string, milestoneId: string): Promise<boolean> {
+  const data = await readProjectsRaw();
+  const pi = data.projects.findIndex((p) => p.id === projectId);
+  if (pi === -1) return false;
+  const before = data.projects[pi].milestones.length;
+  data.projects[pi].milestones = data.projects[pi].milestones.filter((m) => m.id !== milestoneId);
+  if (data.projects[pi].milestones.length === before) return false;
+  data.projects[pi].updatedAt = new Date().toISOString();
+  await writeProjectsRaw(data);
+  return true;
+}
+
+export async function addActivity(
+  projectId: string,
+  input: Omit<Activity, "id" | "timestamp">,
+): Promise<Activity | null> {
+  const data = await readProjectsRaw();
+  const index = data.projects.findIndex((p) => p.id === projectId);
+  if (index === -1) return null;
+  const activity: Activity = {
+    ...input,
+    id: `a-${Date.now()}`,
+    timestamp: new Date().toISOString(),
+  };
+  data.projects[index].activity.unshift(activity);
+  data.projects[index].updatedAt = new Date().toISOString();
+  await writeProjectsRaw(data);
+  return activity;
 }
 
 export async function seedInitialData() {

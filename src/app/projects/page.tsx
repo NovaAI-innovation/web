@@ -1,29 +1,29 @@
-﻿import Image from 'next/image';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 const heroPhoto =
-  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=2200&q=80';
+  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?fit=crop&w=2200&q=80';
 
 const projects = [
   {
     id: 'proj-kitchen',
     image:
-      'https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=1600&q=80',
+      'https://images.unsplash.com/photo-1556911220-bff31c812dba?fit=crop&w=1600&q=80',
     title: 'Modern Kitchen Renovation - Edmonton',
     summary: 'Complete layout rework, custom millwork, stone tops, and upgraded lighting plan.',
   },
   {
     id: 'proj-bath',
     image:
-      'https://images.unsplash.com/photo-1584622781564-1d987f7333c1?auto=format&fit=crop&w=1600&q=80',
+      'https://images.unsplash.com/photo-1584622781564-1d987f7333c1?fit=crop&w=1600&q=80',
     title: 'Luxury Bathroom Upgrade - St. Albert',
     summary: 'Walk-in shower conversion, slab tile package, and custom vanity installation.',
   },
   {
     id: 'proj-full-home',
     image:
-      'https://images.unsplash.com/photo-1616594039964-3f8f4b5b2f5c?auto=format&fit=crop&w=1600&q=80',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?fit=crop&w=1600&q=80',
     title: 'Whole Home Transformation - Glenora',
     summary: 'Full main-floor modernization, structural reconfiguration, and premium finishing.',
   },

@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       path: "/",
       maxAge: 60 * 60 * 8,
       sameSite: "lax",
-      httpOnly: false,
+      httpOnly: true,
     });
 
     return response;

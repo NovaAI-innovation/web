@@ -47,6 +47,7 @@ export default function Header() {
               height={56}
               className="h-10 w-auto"
               priority
+              unoptimized
             />
           </Link>
 
@@ -103,14 +104,14 @@ export default function Header() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-[70] bg-black md:hidden"
           >
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ duration: 0.24, ease: 'easeOut' }}
-              className="ml-auto isolate h-full w-[86%] max-w-sm border-l border-chimera-border bg-[rgba(17,17,17,0.98)] p-6 shadow-[-24px_0_52px_rgba(0,0,0,0.72)]"
+              className="ml-auto isolate h-full w-[86%] max-w-sm border-l border-chimera-border bg-chimera-dark p-6 shadow-[-24px_0_52px_rgba(0,0,0,0.72)]"
             >
               <div className="flex justify-between items-center mb-8">
                 <Image
@@ -120,6 +121,7 @@ export default function Header() {
                   height={44}
                   className="h-8 w-auto"
                   priority
+                  unoptimized
                 />
                 <button onClick={() => setIsOpen(false)} className="text-white" aria-label="Close menu">
                   <X size={30} />

@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { revalidateTag, unstable_cache } from "next/cache";
 
-export type PortalMessageAuthor = "client" | "pm" | "system";
+export type PortalMessageAuthor = "client" | "pm" | "system" | "agent";
 
 export type MessageAttachment = {
   filename: string;
@@ -12,27 +12,23 @@ export type MessageAttachment = {
 
 export type PortalMessage = {
   id: string;
+  clientId: string;
   author: PortalMessageAuthor;
   body: string;
+  reasoning?: string;
   createdAt: string;
   readByClient: boolean;
   attachment?: MessageAttachment;
 };
 
+type LegacyPortalMessage = Omit<PortalMessage, "clientId"> & { clientId?: string };
+
 type PortalMessagesFile = {
-  messages: PortalMessage[];
+  messages: LegacyPortalMessage[];
 };
 
 const defaultPortalMessages: PortalMessagesFile = {
-  messages: [
-    {
-      id: "msg-welcome",
-      author: "pm",
-      body: "Welcome to your portal. Use this thread for quick updates and questions.",
-      createdAt: "2026-03-20T09:00:00.000Z",
-      readByClient: false,
-    },
-  ],
+  messages: [],
 };
 
 function resolveMessagesPath(): string {
@@ -52,7 +48,7 @@ async function ensureMessagesFile(): Promise<void> {
 }
 
 const getCachedMessages = unstable_cache(
-  async (): Promise<PortalMessage[]> => {
+  async (): Promise<LegacyPortalMessage[]> => {
     await ensureMessagesFile();
     const filePath = resolveMessagesPath();
     const raw = await readFile(filePath, "utf-8");
@@ -65,13 +61,31 @@ const getCachedMessages = unstable_cache(
   { revalidate: 5, tags: ["portal-messages"] },
 );
 
-export async function getPortalMessages(): Promise<PortalMessage[]> {
-  return getCachedMessages();
+function normalizeClientMessages(messages: LegacyPortalMessage[], clientId: string): PortalMessage[] {
+  return messages
+    .filter((message) => message.clientId === clientId)
+    .map((message) => ({
+      ...message,
+      clientId,
+      author: message.author,
+      body: message.body,
+      createdAt: message.createdAt,
+      id: message.id,
+      readByClient: message.readByClient,
+      ...(message.attachment ? { attachment: message.attachment } : {}),
+    }));
+}
+
+export async function getPortalMessages(clientId: string): Promise<PortalMessage[]> {
+  const messages = await getCachedMessages();
+  return normalizeClientMessages(messages, clientId);
 }
 
 export async function addPortalMessage(input: {
+  clientId: string;
   author: PortalMessageAuthor;
   body: string;
+  reasoning?: string;
   attachment?: MessageAttachment;
 }): Promise<PortalMessage> {
   await ensureMessagesFile();
@@ -81,8 +95,10 @@ export async function addPortalMessage(input: {
 
   const message: PortalMessage = {
     id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    clientId: input.clientId,
     author: input.author,
     body: input.body,
+    ...(input.reasoning ? { reasoning: input.reasoning } : {}),
     createdAt: new Date().toISOString(),
     readByClient: input.author === "client",
     ...(input.attachment ? { attachment: input.attachment } : {}),
@@ -94,7 +110,7 @@ export async function addPortalMessage(input: {
   return message;
 }
 
-export async function markPortalMessagesReadForClient(): Promise<number> {
+export async function markPortalMessagesReadForClient(clientId: string): Promise<number> {
   await ensureMessagesFile();
   const filePath = resolveMessagesPath();
   const raw = await readFile(filePath, "utf-8");
@@ -102,6 +118,8 @@ export async function markPortalMessagesReadForClient(): Promise<number> {
 
   let changed = 0;
   parsed.messages = parsed.messages.map((message) => {
+    if (message.clientId !== clientId) return message;
+
     if (!message.readByClient && message.author !== "client") {
       changed += 1;
       return { ...message, readByClient: true };
@@ -119,4 +137,46 @@ export async function markPortalMessagesReadForClient(): Promise<number> {
 
 export function getUnreadCountForClient(messages: PortalMessage[]): number {
   return messages.filter((message) => message.author !== "client" && !message.readByClient).length;
+}
+
+// --- Admin helpers ---
+
+export async function getAllPortalMessages(): Promise<PortalMessage[]> {
+  const messages = await getCachedMessages();
+  return messages.map((m) => ({ ...m, clientId: m.clientId ?? "" }));
+}
+
+export type ThreadSummary = {
+  clientId: string;
+  messageCount: number;
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadByAdmin: number;
+};
+
+export async function getThreadSummaries(): Promise<ThreadSummary[]> {
+  const messages = await getCachedMessages();
+  const byClient = new Map<string, LegacyPortalMessage[]>();
+
+  for (const m of messages) {
+    const cid = m.clientId ?? "";
+    if (!cid) continue;
+    const existing = byClient.get(cid) ?? [];
+    existing.push(m);
+    byClient.set(cid, existing);
+  }
+
+  return Array.from(byClient.entries()).map(([clientId, msgs]) => {
+    const sorted = [...msgs].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    const last = sorted[0];
+    return {
+      clientId,
+      messageCount: msgs.length,
+      lastMessage: last.body.slice(0, 120),
+      lastMessageAt: last.createdAt,
+      unreadByAdmin: msgs.filter((m) => m.author === "client").length,
+    };
+  });
 }

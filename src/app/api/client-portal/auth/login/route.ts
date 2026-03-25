@@ -3,6 +3,9 @@ import { z } from "zod";
 import { success, failure } from "@/lib/api";
 import { verifyClientCredentials, generateToken } from "@/lib/client-store";
 import { rateLimit } from "@/lib/rate-limit";
+import { logEvent } from "@/lib/observability";
+import { sendAlert } from "@/lib/alerts";
+import { getRequestId } from "@/lib/request-id";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -10,12 +13,31 @@ const loginSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const requestId = getRequestId(request.headers);
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
   const { allowed, retryAfterSeconds } = rateLimit(
-    "login",
+    `login:${ip}`,
     10,
     60 * 60 * 1000,
   );
   if (!allowed) {
+    logEvent({
+      level: "error",
+      message: "Login rate limited — potential brute force",
+      requestId,
+      route: "/api/client-portal/auth/login",
+      status: 429,
+      errorCode: "RATE_LIMITED",
+      context: { ip },
+    });
+    void sendAlert({
+      title: "Login Rate Limit Triggered",
+      severity: "high",
+      requestId,
+      route: "/api/client-portal/auth/login",
+      message: `Too many login attempts from ${ip}`,
+      context: { ip },
+    });
     return NextResponse.json(
       failure("RATE_LIMITED", `Too many login attempts. Try again in ${retryAfterSeconds}s.`),
       { status: 429 },
@@ -62,7 +84,7 @@ export async function POST(request: Request) {
     path: "/",
     maxAge: 60 * 60 * 8,
     sameSite: "lax",
-    httpOnly: false,
+    httpOnly: true,
   });
 
   return response;

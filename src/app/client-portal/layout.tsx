@@ -110,7 +110,7 @@ export default function ClientPortalLayout({
 
   return (
     <div className="min-h-screen bg-chimera-black">
-      <nav className="border-b border-chimera-border bg-chimera-dark sticky top-0 z-50">
+      <nav className="border-b border-chimera-border bg-chimera-dark sticky top-[109px] z-40">
         <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4 sm:py-5 flex items-center justify-between">
           {/* Left: Back + Brand */}
           <div className="flex items-center gap-4 sm:gap-6">
@@ -179,15 +179,15 @@ export default function ClientPortalLayout({
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-chimera-border bg-chimera-dark">
-            <div className="max-w-6xl mx-auto px-4 py-4 space-y-1">
+            <div className="max-w-6xl mx-auto px-4 py-4 space-y-1 bg-chimera-dark">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={`flex items-center justify-between px-4 py-3 rounded-xl transition ${
                     isActive(link.href)
-                      ? 'bg-chimera-gold/10 text-chimera-gold'
-                      : 'text-chimera-text-secondary hover:bg-white/5 hover:text-white'
+                      ? 'bg-chimera-gold text-black'
+                      : 'bg-chimera-dark text-chimera-text-secondary hover:bg-chimera-surface hover:text-white'
                   }`}
                 >
                   <span>{link.label}</span>

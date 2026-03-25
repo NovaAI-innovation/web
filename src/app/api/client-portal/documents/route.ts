@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { success } from "@/lib/api";
 import { logEvent } from "@/lib/observability";
 import { getRequestId } from "@/lib/request-id";
+import { requirePortalAuth } from "@/lib/portal-auth";
+import { isContractorDocument } from "@/lib/document-source";
 
 const UPLOAD_DIR = resolve(join(process.cwd(), ".data", "uploads"));
 
@@ -15,10 +17,13 @@ async function ensureUploadDir() {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const startedAt = Date.now();
-  const requestId = getRequestId(new Headers());
+  const requestId = getRequestId(request.headers);
   const route = "/api/client-portal/documents";
+
+  const auth = await requirePortalAuth();
+  if (!auth.ok) return auth.response;
 
   try {
     await ensureUploadDir();
@@ -34,7 +39,7 @@ export async function GET() {
       files.map(async (filename) => {
         const filePath = join(UPLOAD_DIR, filename);
         const stats = await stat(filePath);
-        
+
         return {
           id: filename,
           name: filename.replace(/^\d+-/, ''),
@@ -44,7 +49,7 @@ export async function GET() {
           url: `/api/client-portal/documents/download/${filename}`,
         };
       })
-    );
+    ).then((list) => list.filter((f) => isContractorDocument(f.filename)));
 
     const endedAt = Date.now();
     logEvent({

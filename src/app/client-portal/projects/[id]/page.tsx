@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { getProjectById, getAllProjects } from '@/lib/project-store';
+import { parseToken, findClientById } from '@/lib/client-store';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -13,9 +15,24 @@ export async function generateStaticParams() {
 
 export default async function ProjectDetailPage({ params }: Props) {
   const { id } = await params;
+
+  // Verify project belongs to authenticated client
+  let clientId = '';
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('portalToken')?.value;
+    if (token) {
+      const parsed = parseToken(token);
+      if (parsed) {
+        const client = await findClientById(parsed.clientId);
+        if (client) clientId = client.id;
+      }
+    }
+  } catch { /* fallback */ }
+
   const project = await getProjectById(id);
 
-  if (!project) {
+  if (!project || (project.clientId && project.clientId !== clientId)) {
     notFound();
   }
 
@@ -63,7 +80,7 @@ export default async function ProjectDetailPage({ params }: Props) {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          <div className="glass rounded-3xl p-8">
+          <div className="glass rounded-xl p-8">
             <div className="uppercase text-xs tracking-widest text-chimera-gold mb-6">BUDGET</div>
             <div className="flex justify-between items-end mb-3">
               <div className="text-3xl font-display text-chimera-gold tabular-nums">
@@ -80,7 +97,7 @@ export default async function ProjectDetailPage({ params }: Props) {
             <div className="text-xs text-chimera-text-muted mt-3">{budgetPercent}% utilized</div>
           </div>
 
-          <div className="glass rounded-3xl p-8">
+          <div className="glass rounded-xl p-8">
             <div className="uppercase text-xs tracking-widest text-chimera-gold mb-6">SCHEDULE</div>
             <div className="space-y-4">
               <div>
@@ -98,7 +115,7 @@ export default async function ProjectDetailPage({ params }: Props) {
             </div>
           </div>
 
-          <div className="glass rounded-3xl p-8">
+          <div className="glass rounded-xl p-8">
             <div className="uppercase text-xs tracking-widest text-chimera-gold mb-6">MILESTONES</div>
             <div className="text-5xl font-display text-chimera-gold tabular-nums">
               {completedMilestones}
@@ -109,7 +126,7 @@ export default async function ProjectDetailPage({ params }: Props) {
         </div>
 
         {/* Milestone Timeline */}
-        <div className="glass rounded-3xl p-10 mb-16">
+        <div className="glass rounded-xl p-10 mb-16">
           <div className="uppercase text-xs tracking-[2px] text-chimera-gold mb-8">PROJECT TIMELINE</div>
           <div className="relative">
             {/* Vertical line */}
@@ -158,7 +175,7 @@ export default async function ProjectDetailPage({ params }: Props) {
 
         {/* Activity Feed */}
         {project.activity.length > 0 && (
-          <div className="glass rounded-3xl p-10">
+          <div className="glass rounded-xl p-10">
             <div className="uppercase text-xs tracking-[2px] text-chimera-gold mb-8">RECENT ACTIVITY</div>
             <div className="space-y-4">
               {project.activity

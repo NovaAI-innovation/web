@@ -1,4 +1,6 @@
-﻿const concepts = [
+﻿import Image from 'next/image';
+
+const concepts = [
   {
     id: 'A',
     title: 'Concept A - Steel Wordmark',
@@ -42,8 +44,8 @@ export default function LogoConceptsPage() {
                 <div className="text-sm text-chimera-gold">Score: {concept.score}/100</div>
               </div>
               <p className="text-chimera-text-muted mb-5">{concept.notes}</p>
-              <div className="bg-black border border-chimera-border rounded-md overflow-hidden">
-                <img src={concept.file} alt={concept.title} className="w-full h-auto" />
+              <div className="relative h-48 bg-black border border-chimera-border rounded-md overflow-hidden">
+                <Image src={concept.file} alt={concept.title} fill className="object-contain p-4" />
               </div>
             </section>
           ))}

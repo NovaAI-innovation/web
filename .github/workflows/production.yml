@@ -1,0 +1,110 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+# Only allow one production deployment at a time
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  # Gate: must pass CI first
+  ci-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit Tests
+        run: npm run test:run
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_PHONE: ${{ secrets.NEXT_PUBLIC_PHONE }}
+          NEXT_PUBLIC_EMAIL: ${{ secrets.NEXT_PUBLIC_EMAIL }}
+
+  deploy:
+    needs: ci-check
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create production env file
+        run: |
+          cat > .env.production <<EOF
+          NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_PHONE=${{ secrets.NEXT_PUBLIC_PHONE }}
+          NEXT_PUBLIC_EMAIL=${{ secrets.NEXT_PUBLIC_EMAIL }}
+          OWNER_EMAIL=${{ secrets.OWNER_EMAIL }}
+          LEADS_DATA_FILE_NAME=leads.json
+          RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL=${{ secrets.RESEND_FROM_EMAIL }}
+          ONCALL_ALERT_WEBHOOK_URL=${{ secrets.ONCALL_ALERT_WEBHOOK_URL }}
+          OTEL_HTTP_ENDPOINT=${{ secrets.OTEL_HTTP_ENDPOINT }}
+          XAI_API_KEY=${{ secrets.XAI_API_KEY }}
+          ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+          EOF
+
+      - name: Deploy to production server via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+          script: |
+            set -e
+            cd /opt/chimera-web
+
+            # Pull latest code
+            git fetch origin master
+            git reset --hard origin/master
+
+            # Copy env file (already present from server setup, just ensure latest)
+            # Update docker image and restart
+            docker compose -f docker-compose.production.yml pull 2>/dev/null || true
+            docker compose -f docker-compose.production.yml up -d --build --remove-orphans
+
+            # Wait for health check
+            for i in $(seq 1 20); do
+              if curl -sf http://localhost:3000/api/health > /dev/null; then
+                echo "Health check passed"
+                exit 0
+              fi
+              sleep 3
+            done
+
+            echo "Health check failed after deployment"
+            docker compose -f docker-compose.production.yml logs --tail=50
+            exit 1
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -X POST "${{ secrets.ONCALL_ALERT_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{"text":"[CRITICAL] Production deployment failed for commit ${{ github.sha }}"}' \
+            2>/dev/null || true

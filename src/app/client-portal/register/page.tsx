@@ -72,7 +72,7 @@ export default function ClientPortalRegister() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+          <div className="mb-6 p-4 rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
             {error}
           </div>
         )}
@@ -85,7 +85,7 @@ export default function ClientPortalRegister() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-chimera-surface border border-chimera-border rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
+              className="w-full bg-chimera-surface border border-chimera-border rounded-md px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
               placeholder="John Smith"
               required
             />
@@ -99,7 +99,7 @@ export default function ClientPortalRegister() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-chimera-surface border border-chimera-border rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
+              className="w-full bg-chimera-surface border border-chimera-border rounded-md px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
               placeholder="you@email.com"
               required
             />
@@ -113,7 +113,7 @@ export default function ClientPortalRegister() {
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full bg-chimera-surface border border-chimera-border rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
+              className="w-full bg-chimera-surface border border-chimera-border rounded-md px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
               placeholder="(555) 123-4567"
               required
             />
@@ -127,7 +127,7 @@ export default function ClientPortalRegister() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-chimera-surface border border-chimera-border rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
+              className="w-full bg-chimera-surface border border-chimera-border rounded-md px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
               placeholder="Min. 8 characters"
               minLength={8}
               required
@@ -142,7 +142,7 @@ export default function ClientPortalRegister() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full bg-chimera-surface border border-chimera-border rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
+              className="w-full bg-chimera-surface border border-chimera-border rounded-md px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
               placeholder="Re-enter password"
               minLength={8}
               required
@@ -152,7 +152,7 @@ export default function ClientPortalRegister() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-4 bg-chimera-gold text-black font-semibold rounded-2xl hover:bg-white transition-all disabled:opacity-70"
+            className="w-full py-4 bg-chimera-gold text-black font-semibold rounded-md hover:bg-white transition-all disabled:opacity-70"
           >
             {isLoading ? "Creating Account..." : "Create Account"}
           </button>

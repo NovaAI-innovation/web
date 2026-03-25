@@ -1,4 +1,6 @@
-import { getInvoiceSummary } from '@/lib/invoice-store';
+import { cookies } from 'next/headers';
+import { parseToken, findClientById } from '@/lib/client-store';
+import { getInvoiceSummaryByClient } from '@/lib/invoice-store';
 import type { InvoiceStatus } from '@/lib/invoice-store';
 
 const statusConfig: Record<InvoiceStatus, { label: string; color: string; bg: string }> = {
@@ -8,7 +10,20 @@ const statusConfig: Record<InvoiceStatus, { label: string; color: string; bg: st
 };
 
 export default async function InvoicesPage() {
-  const summary = await getInvoiceSummary();
+  let clientId = '';
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('portalToken')?.value;
+    if (token) {
+      const parsed = parseToken(token);
+      if (parsed) {
+        const client = await findClientById(parsed.clientId);
+        if (client) clientId = client.id;
+      }
+    }
+  } catch { /* fallback to empty */ }
+
+  const summary = await getInvoiceSummaryByClient(clientId);
 
   return (
     <div className="min-h-screen bg-chimera-black p-10">
@@ -21,19 +36,19 @@ export default async function InvoicesPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          <div className="glass rounded-3xl p-8">
+          <div className="glass rounded-xl p-8">
             <div className="text-xs text-chimera-text-muted mb-2">TOTAL INVOICES</div>
             <div className="text-4xl font-display text-chimera-gold tabular-nums">{summary.totalInvoices}</div>
           </div>
-          <div className="glass rounded-3xl p-8">
+          <div className="glass rounded-xl p-8">
             <div className="text-xs text-chimera-text-muted mb-2">TOTAL PAID</div>
             <div className="text-3xl font-display text-green-400 tabular-nums">${summary.totalPaid.toLocaleString()}</div>
           </div>
-          <div className="glass rounded-3xl p-8">
+          <div className="glass rounded-xl p-8">
             <div className="text-xs text-chimera-text-muted mb-2">OUTSTANDING</div>
             <div className="text-3xl font-display text-yellow-400 tabular-nums">${summary.totalOutstanding.toLocaleString()}</div>
           </div>
-          <div className="glass rounded-3xl p-8">
+          <div className="glass rounded-xl p-8">
             <div className="text-xs text-chimera-text-muted mb-2">OVERDUE</div>
             <div className="text-4xl font-display text-red-400 tabular-nums">{summary.overdueCount}</div>
           </div>
@@ -47,7 +62,7 @@ export default async function InvoicesPage() {
               const status = statusConfig[invoice.status];
 
               return (
-                <div key={invoice.id} className="glass rounded-2xl p-8">
+                <div key={invoice.id} className="glass rounded-xl p-8">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     <div className="flex items-center gap-4">
                       <div className="font-display text-2xl">{invoice.number}</div>

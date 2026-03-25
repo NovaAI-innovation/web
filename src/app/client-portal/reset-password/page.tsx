@@ -71,7 +71,7 @@ function ResetPasswordForm() {
     return (
       <main className="min-h-screen bg-chimera-black flex items-center justify-center">
         <div className="max-w-md w-full px-8 text-center">
-          <div className="mx-auto w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center mb-8">
+          <div className="mx-auto w-16 h-16 bg-green-500/10 rounded-md flex items-center justify-center mb-8">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
@@ -82,7 +82,7 @@ function ResetPasswordForm() {
           </p>
           <Link
             href="/client-portal"
-            className="inline-block py-4 px-10 bg-chimera-gold text-black font-semibold rounded-2xl hover:bg-white transition-all"
+            className="inline-block py-4 px-10 bg-chimera-gold text-black font-semibold rounded-md hover:bg-white transition-all"
           >
             Sign In
           </Link>
@@ -100,7 +100,7 @@ function ResetPasswordForm() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+          <div className="mb-6 p-4 rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
             {error}
           </div>
         )}
@@ -113,7 +113,7 @@ function ResetPasswordForm() {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full bg-chimera-surface border border-chimera-border rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
+              className="w-full bg-chimera-surface border border-chimera-border rounded-md px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
               placeholder="Min. 8 characters"
               minLength={8}
               required
@@ -127,7 +127,7 @@ function ResetPasswordForm() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full bg-chimera-surface border border-chimera-border rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
+              className="w-full bg-chimera-surface border border-chimera-border rounded-md px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
               placeholder="Re-enter password"
               minLength={8}
               required
@@ -137,7 +137,7 @@ function ResetPasswordForm() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-4 bg-chimera-gold text-black font-semibold rounded-2xl hover:bg-white transition-all disabled:opacity-70"
+            className="w-full py-4 bg-chimera-gold text-black font-semibold rounded-md hover:bg-white transition-all disabled:opacity-70"
           >
             {isLoading ? 'Resetting...' : 'Reset Password'}
           </button>

@@ -1,6 +1,12 @@
 import { Resend } from "resend";
 import type { ContactSubmission } from "@/lib/contact";
 
+type SendPasswordResetEmailInput = {
+  to: string;
+  resetToken: string;
+  requestId: string;
+};
+
 type SendLeadNotificationInput = {
   leadId: string;
   lead: ContactSubmission;
@@ -13,6 +19,37 @@ function getResendClient(): Resend | null {
     return null;
   }
   return new Resend(apiKey);
+}
+
+export async function sendPasswordResetEmail(
+  input: SendPasswordResetEmailInput,
+): Promise<"sent" | "skipped"> {
+  const client = getResendClient();
+  const from = process.env.RESEND_FROM_EMAIL;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+  if (!client || !from) {
+    return "skipped";
+  }
+
+  const resetUrl = `${siteUrl}/client-portal/reset-password?token=${input.resetToken}`;
+
+  await client.emails.send({
+    from,
+    to: [input.to],
+    subject: "Reset your Chimera Enterprise password",
+    text: [
+      "You requested a password reset for your Chimera Enterprise client portal account.",
+      "",
+      `Reset your password here: ${resetUrl}`,
+      "",
+      "This link expires in 1 hour. If you did not request a reset, you can safely ignore this email.",
+      "",
+      "— Chimera Enterprise",
+    ].join("\n"),
+  });
+
+  return "sent";
 }
 
 export async function sendLeadNotification(

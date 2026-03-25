@@ -181,11 +181,11 @@ export default function SettingsPage() {
         </div>
 
         {/* Profile Section */}
-        <div className="glass rounded-3xl p-10 mb-8">
+        <div className="glass rounded-xl p-10 mb-8">
           <div className="uppercase text-xs tracking-[2px] text-chimera-gold mb-8">PROFILE INFORMATION</div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+            <div className="mb-6 p-4 rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
               {error}
             </div>
           )}
@@ -199,7 +199,7 @@ export default function SettingsPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-chimera-surface border border-chimera-border rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
+                  className="w-full bg-chimera-surface border border-chimera-border rounded-md px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
                 />
               </div>
               <div>
@@ -209,7 +209,7 @@ export default function SettingsPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-chimera-surface border border-chimera-border rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
+                  className="w-full bg-chimera-surface border border-chimera-border rounded-md px-5 py-4 text-white focus:outline-none focus:border-chimera-gold"
                 />
               </div>
             </div>
@@ -220,7 +220,7 @@ export default function SettingsPage() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full bg-chimera-surface border border-chimera-border rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-chimera-gold md:max-w-sm"
+                className="w-full bg-chimera-surface border border-chimera-border rounded-md px-5 py-4 text-white focus:outline-none focus:border-chimera-gold md:max-w-sm"
               />
             </div>
             <div className="flex items-center gap-4">
@@ -239,7 +239,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Notifications Section */}
-        <div className="glass rounded-3xl p-10 mb-8">
+        <div className="glass rounded-xl p-10 mb-8">
           <div className="uppercase text-xs tracking-[2px] text-chimera-gold mb-8">NOTIFICATION PREFERENCES</div>
           <div className="space-y-6">
             <ToggleRow
@@ -270,7 +270,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Password Section */}
-        <div className="glass rounded-3xl p-10">
+        <div className="glass rounded-xl p-10">
           <div className="uppercase text-xs tracking-[2px] text-chimera-gold mb-8">SECURITY</div>
 
           {!showPasswordForm ? (
@@ -307,12 +307,12 @@ export default function SettingsPage() {
               </div>
 
               {passwordError && (
-                <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                <div className="p-4 rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
                   {passwordError}
                 </div>
               )}
               {passwordSuccess && (
-                <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
+                <div className="p-4 rounded-md bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
                   Password changed successfully.
                 </div>
               )}
@@ -324,7 +324,7 @@ export default function SettingsPage() {
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full bg-chimera-surface border border-chimera-border rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-chimera-gold md:max-w-sm"
+                  className="w-full bg-chimera-surface border border-chimera-border rounded-md px-5 py-4 text-white focus:outline-none focus:border-chimera-gold md:max-w-sm"
                   required
                 />
               </div>
@@ -335,7 +335,7 @@ export default function SettingsPage() {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full bg-chimera-surface border border-chimera-border rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-chimera-gold md:max-w-sm"
+                  className="w-full bg-chimera-surface border border-chimera-border rounded-md px-5 py-4 text-white focus:outline-none focus:border-chimera-gold md:max-w-sm"
                   placeholder="Min. 8 characters"
                   minLength={8}
                   required
@@ -348,7 +348,7 @@ export default function SettingsPage() {
                   type="password"
                   value={confirmNewPassword}
                   onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  className="w-full bg-chimera-surface border border-chimera-border rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-chimera-gold md:max-w-sm"
+                  className="w-full bg-chimera-surface border border-chimera-border rounded-md px-5 py-4 text-white focus:outline-none focus:border-chimera-gold md:max-w-sm"
                   minLength={8}
                   required
                 />

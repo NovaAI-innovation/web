@@ -5,7 +5,7 @@ import { Phone, Mail, MessageSquare } from 'lucide-react';
 import { ContactForm } from './contact-form';
 
 const heroPhoto =
-  'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=2200&q=80';
+  'https://images.unsplash.com/photo-1497366216548-37526070297c?fit=crop&w=2200&q=80';
 
 const contactMethods = [
   {

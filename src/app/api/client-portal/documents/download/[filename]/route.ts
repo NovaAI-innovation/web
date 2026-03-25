@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import { NextResponse } from "next/server";
 import { logEvent } from "@/lib/observability";
 import { getRequestId } from "@/lib/request-id";
+import { requirePortalAuth } from "@/lib/portal-auth";
 
 const UPLOAD_DIR = resolve(join(process.cwd(), ".data", "uploads"));
 
@@ -10,10 +11,13 @@ type Props = {
   params: Promise<{ filename: string }>;
 };
 
-export async function GET(_request: Request, { params }: Props) {
+export async function GET(request: Request, { params }: Props) {
   const startedAt = Date.now();
-  const requestId = getRequestId(new Headers());
+  const requestId = getRequestId(request.headers);
   const route = "/api/client-portal/documents/download";
+
+  const auth = await requirePortalAuth();
+  if (!auth.ok) return auth.response;
 
   const { filename } = await params;
 

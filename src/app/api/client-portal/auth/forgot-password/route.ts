@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { success, failure } from "@/lib/api";
-import { createResetToken } from "@/lib/client-store";
+import { createResetToken, findClientByEmail } from "@/lib/client-store";
 import { logEvent } from "@/lib/observability";
 import { getRequestId } from "@/lib/request-id";
+import { sendPasswordResetEmail } from "@/lib/email";
 
 const schema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -43,15 +44,32 @@ export async function POST(request: Request) {
     context: { emailProvided: true, tokenCreated: !!token },
   });
 
-  // In production, this would send an email with the reset link.
-  // For development, log the token so it can be used.
   if (token) {
-    logEvent({
-      level: "info",
-      message: `[DEV] Reset link: /client-portal/reset-password?token=${token}`,
-      requestId,
-      route,
-    });
+    const client = await findClientByEmail(validated.data.email);
+    if (client) {
+      const emailResult = await sendPasswordResetEmail({
+        to: client.email,
+        resetToken: token,
+        requestId,
+      });
+      logEvent({
+        level: "info",
+        message: `Password reset email ${emailResult}`,
+        requestId,
+        route,
+        context: { emailResult },
+      });
+    }
+
+    // In development, also log the link for easy testing without an email provider
+    if (process.env.NODE_ENV === "development") {
+      logEvent({
+        level: "info",
+        message: `[DEV] Reset link: /client-portal/reset-password?token=${token}`,
+        requestId,
+        route,
+      });
+    }
   }
 
   return NextResponse.json(

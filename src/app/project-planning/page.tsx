@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 
 const heroPhoto =
-  'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=2200&q=80';
+  'https://images.unsplash.com/photo-1503387762-592deb58ef4e?fit=crop&w=2200&q=80';
 
 const steps = [
   { id: 1, title: 'Scope', description: 'What areas need work?' },
@@ -19,6 +19,7 @@ export default function ProjectPlanningPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     scope: '',
+    otherScope: '',
     timeline: '',
     budget: '',
     name: '',
@@ -35,12 +36,14 @@ export default function ProjectPlanningPage() {
 
   const nextStep = () => {
     if (currentStep < 4) {
+      setSubmitError('');
       setCurrentStep(currentStep + 1);
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
+      setSubmitError('');
       setCurrentStep(currentStep - 1);
     }
   };
@@ -48,13 +51,23 @@ export default function ProjectPlanningPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError('');
+
+    if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
+      setSubmitError('Please fill in your name, email, and phone number before submitting.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      const submitData = {
+        ...formData,
+        scope: formData.scope === 'Other' ? formData.otherScope.trim() : formData.scope,
+      };
       const res = await fetch('/api/project-planning/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       });
 
       const payload = await res.json() as {
@@ -168,6 +181,33 @@ export default function ProjectPlanningPage() {
                     </button>
                   ))}
                 </div>
+
+                <AnimatePresence>
+                  {formData.scope === 'Other' && (
+                    <motion.div
+                      key="other-scope"
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      className="overflow-hidden"
+                    >
+                      <label htmlFor="other-scope-input" className="block text-sm text-chimera-text-muted mb-3">
+                        Tell us what you&apos;d like to renovate
+                      </label>
+                      <input
+                        id="other-scope-input"
+                        type="text"
+                        autoFocus
+                        value={formData.otherScope}
+                        onChange={(e) => updateField('otherScope', e.target.value)}
+                        placeholder="e.g. Garage, Laundry room, Deck…"
+                        maxLength={120}
+                        className="w-full bg-transparent border-b border-chimera-gold pb-3 text-xl text-white placeholder:text-chimera-text-muted focus:outline-none"
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
 
@@ -282,7 +322,11 @@ export default function ProjectPlanningPage() {
               <button
                 type="button"
                 onClick={nextStep}
-                className="flex items-center gap-3 bg-chimera-gold text-black px-10 py-4 rounded-md font-medium hover:bg-white transition-colors"
+                disabled={currentStep === 1 && (
+                  !formData.scope ||
+                  (formData.scope === 'Other' && !formData.otherScope.trim())
+                )}
+                className="flex items-center gap-3 bg-chimera-gold text-black px-10 py-4 rounded-md font-medium hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-chimera-gold"
               >
                 Continue <ChevronRight />
               </button>

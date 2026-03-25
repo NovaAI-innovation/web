@@ -1,4 +1,6 @@
-﻿const assets = [
+﻿import Image from 'next/image';
+
+const assets = [
   { name: 'Primary On Dark', file: '/brand/final/chimera-primary-on-dark.svg', dark: true },
   { name: 'Primary On Light', file: '/brand/final/chimera-primary-on-light.svg', dark: false },
   { name: 'Horizontal On Dark', file: '/brand/final/chimera-horizontal-on-dark.svg', dark: true },
@@ -17,8 +19,8 @@ export default function LogoFinalPage() {
           {assets.map((asset) => (
             <section key={asset.file} className="border border-chimera-border rounded-xl p-5 bg-chimera-surface">
               <h2 className="font-medium mb-4">{asset.name}</h2>
-              <div className={asset.dark ? 'bg-black border border-chimera-border rounded-md overflow-hidden' : 'bg-white border border-chimera-border rounded-md overflow-hidden'}>
-                <img src={asset.file} alt={asset.name} className="w-full h-auto" />
+              <div className={`relative h-48 ${asset.dark ? 'bg-black border border-chimera-border rounded-md overflow-hidden' : 'bg-white border border-chimera-border rounded-md overflow-hidden'}`}>
+                <Image src={asset.file} alt={asset.name} fill className="object-contain p-4" />
               </div>
               <p className="text-xs text-chimera-text-muted mt-3">{asset.file}</p>
             </section>

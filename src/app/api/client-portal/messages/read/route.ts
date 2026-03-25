@@ -3,14 +3,18 @@ import { failure, success } from "@/lib/api";
 import { markPortalMessagesReadForClient } from "@/lib/portal-messages";
 import { logEvent } from "@/lib/observability";
 import { getRequestId } from "@/lib/request-id";
+import { requirePortalAuth } from "@/lib/portal-auth";
 
 export async function POST(request: Request) {
   const startedAt = Date.now();
   const requestId = getRequestId(request.headers);
   const route = "/api/client-portal/messages/read";
 
+  const auth = await requirePortalAuth();
+  if (!auth.ok) return auth.response;
+
   try {
-    const updated = await markPortalMessagesReadForClient();
+    const updated = await markPortalMessagesReadForClient(auth.client.id);
 
     const endedAt = Date.now();
     logEvent({

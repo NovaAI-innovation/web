@@ -1,4 +1,7 @@
-import { getAllProjects } from '@/lib/project-store';
+import { cookies } from 'next/headers';
+import { parseToken, findClientById } from '@/lib/client-store';
+import { getProjectsByClient } from '@/lib/project-store';
+import { getInvoicesByProject } from '@/lib/invoice-store';
 
 type ProjectCard = {
   id: string;
@@ -8,24 +11,45 @@ type ProjectCard = {
   due: string;
   phase: string;
   milestones: Array<{ title: string; completed: boolean; dueDate: string }>;
+  hasUnpaidBalance: boolean;
 };
 
 export default async function ProjectsPage() {
-  const projects = await getAllProjects();
+  let clientId = '';
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('portalToken')?.value;
+    if (token) {
+      const parsed = parseToken(token);
+      if (parsed) {
+        const client = await findClientById(parsed.clientId);
+        if (client) clientId = client.id;
+      }
+    }
+  } catch { /* fallback to empty */ }
 
-  const mappedProjects: ProjectCard[] = projects.map(p => ({
-    id: p.id,
-    title: p.name,
-    status: p.status === 'active' ? 'In Progress' : p.status === 'planning' ? 'Planning' : 'Completed',
-    progress: p.progress,
-    due: new Date(p.schedule.currentEnd).toLocaleDateString('en-US', { 
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
-    }),
-    phase: p.milestones.findLast(m => !m.completed)?.title || p.milestones[0]?.title || 'Project Complete',
-    milestones: p.milestones
-  }));
+  const projects = await getProjectsByClient(clientId);
+
+  const mappedProjects: ProjectCard[] = await Promise.all(
+    projects.map(async (p) => {
+      const invoices = await getInvoicesByProject(p.id);
+      const hasUnpaidBalance = invoices.some((inv) => inv.status !== 'paid');
+      return {
+        id: p.id,
+        title: p.name,
+        status: p.status === 'active' ? 'In Progress' : p.status === 'planning' ? 'Planning' : 'Completed',
+        progress: p.progress,
+        due: new Date(p.schedule.currentEnd).toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric'
+        }),
+        phase: p.milestones.findLast(m => !m.completed)?.title || p.milestones[0]?.title || 'Project Complete',
+        milestones: p.milestones,
+        hasUnpaidBalance,
+      };
+    })
+  );
 
   return (
     <div className="min-h-screen bg-chimera-black p-10">
@@ -37,10 +61,17 @@ export default async function ProjectsPage() {
 
         <div className="grid gap-6">
           {mappedProjects.map(project => (
-            <a key={project.id} href={`/client-portal/projects/${project.id}`} className="glass rounded-3xl p-10 block hover:border-chimera-gold/30 border border-transparent transition-all">
+            <a key={project.id} href={`/client-portal/projects/${project.id}`} className="glass rounded-xl p-10 block hover:border-chimera-gold/30 border border-transparent transition-all">
               <div className="flex flex-col md:flex-row gap-10 mb-10">
                 <div className="flex-1">
-                  <div className="uppercase text-xs tracking-[2px] text-chimera-gold mb-3">{project.status}</div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="uppercase text-xs tracking-[2px] text-chimera-gold">{project.status}</div>
+                    {project.hasUnpaidBalance && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-chimera-gold/10 text-chimera-gold border border-chimera-gold/40">
+                        Balance Outstanding
+                      </span>
+                    )}
+                  </div>
                   <h3 className="font-display text-4xl mb-4">{project.title}</h3>
                   <div className="text-chimera-text-muted">Current Phase: {project.phase}</div>
                 </div>
@@ -50,7 +81,7 @@ export default async function ProjectsPage() {
                     <div className="text-right text-sm text-chimera-text-muted mb-1">PROGRESS</div>
                     <div className="text-7xl font-display text-chimera-gold tabular-nums">{project.progress}<span className="text-4xl">%</span></div>
                   </div>
-                  
+
                   <div className="text-right">
                     <div className="text-xs text-chimera-text-muted">TARGET COMPLETION</div>
                     <div className="font-medium">{project.due}</div>
@@ -83,6 +114,12 @@ export default async function ProjectsPage() {
             </a>
           ))}
         </div>
+
+        {mappedProjects.length === 0 && (
+          <div className="text-center py-20 text-chimera-text-muted">
+            No projects have been assigned to your account yet.
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,11 +1,11 @@
-﻿import Image from 'next/image';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowDown, ClipboardList, Home, MoveRight, ShieldCheck, Star } from 'lucide-react';
 import HeroFlourish from '@/components/HeroFlourish';
 import AnimatedStat from '@/components/AnimatedStat';
 
 const heroPhoto =
-  'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=2200&q=80';
+  'https://images.unsplash.com/photo-1505691938895-1758d7feb511?fit=crop&w=2200&q=80';
 
 const localBusinessSchema = {
   '@context': 'https://schema.org',
@@ -29,7 +29,7 @@ const featuredProjects = [
   {
     id: 'proj-kitchen',
     image:
-      'https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1556911220-bff31c812dba?fit=crop&w=1400&q=80',
     alt: 'Modern kitchen renovation with wood cabinetry and stone countertops',
     title: 'Modern Kitchen Renovation - Edmonton',
     meta: '2025 - Full Gut Reno',
@@ -37,7 +37,7 @@ const featuredProjects = [
   {
     id: 'proj-bath',
     image:
-      'https://images.unsplash.com/photo-1584622781564-1d987f7333c1?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1584622781564-1d987f7333c1?fit=crop&w=1400&q=80',
     alt: 'Luxury bathroom renovation with glass shower and tile walls',
     title: 'Luxury Bathroom Upgrade - St. Albert',
     meta: '2025 - Ensuite Remodel',
@@ -45,7 +45,7 @@ const featuredProjects = [
   {
     id: 'proj-full-home',
     image:
-      'https://images.unsplash.com/photo-1616594039964-3f8f4b5b2f5c?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?fit=crop&w=1400&q=80',
     alt: 'Open concept living room renovation with modern finishes',
     title: 'Whole Home Transformation - Glenora',
     meta: '2025 - Full Home Modernization',
@@ -280,7 +280,7 @@ export default function HomePage() {
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial) => (
               <article key={testimonial.name} className="bg-chimera-surface border border-chimera-border rounded-xl p-8">
-                <div className="flex items-center gap-1 text-chimera-gold mb-5" aria-label="5 out of 5 stars">
+                <div role="img" className="flex items-center gap-1 text-chimera-gold mb-5" aria-label="5 out of 5 stars">
                   <Star className="w-4 h-4 fill-current" />
                   <Star className="w-4 h-4 fill-current" />
                   <Star className="w-4 h-4 fill-current" />

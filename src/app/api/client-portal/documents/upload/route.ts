@@ -5,6 +5,8 @@ import { failure, success } from "@/lib/api";
 import { logEvent } from "@/lib/observability";
 import { getRequestId } from "@/lib/request-id";
 import { rateLimit } from "@/lib/rate-limit";
+import { requirePortalAuth } from "@/lib/portal-auth";
+import { recordDocumentSource } from "@/lib/document-source";
 
 const UPLOAD_DIR = resolve(join(process.cwd(), ".data", "uploads"));
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
@@ -29,8 +31,11 @@ export async function POST(request: Request) {
   const requestId = getRequestId(request.headers);
   const route = "/api/client-portal/documents/upload";
 
+  const auth = await requirePortalAuth();
+  if (!auth.ok) return auth.response;
+
   // Rate limiting (more strict for uploads)
-  const throttle = rateLimit(`upload:${requestId}`, 10, 60 * 60 * 1000);
+  const throttle = rateLimit(`upload:${auth.client.id}`, 10, 60 * 60 * 1000);
   if (!throttle.allowed) {
     const endedAt = Date.now();
     logEvent({
@@ -52,6 +57,8 @@ export async function POST(request: Request) {
     await ensureUploadDir();
 
     const formData = await request.formData();
+    const sourceParam = formData.get("source");
+    const source: 'contractor' | 'client' = sourceParam === 'contractor' ? 'contractor' : 'client';
     const file = formData.get("file") as File | null;
 
     if (!file) {
@@ -82,6 +89,7 @@ export async function POST(request: Request) {
     const filePath = join(UPLOAD_DIR, filename);
 
     await writeFile(filePath, buffer);
+    recordDocumentSource(filename, source, auth.client.id);
 
     const endedAt = Date.now();
     logEvent({

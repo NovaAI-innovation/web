@@ -61,6 +61,11 @@ function hashPassword(password: string, salt: string): string {
     .digest("hex");
 }
 
+export async function getAllClients(): Promise<StoredClient[]> {
+  const data = await readClients();
+  return data.clients;
+}
+
 export async function findClientByEmail(email: string): Promise<StoredClient | null> {
   const data = await readClients();
   return data.clients.find((c) => c.email.toLowerCase() === email.toLowerCase()) ?? null;

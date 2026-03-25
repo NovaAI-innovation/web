@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
     formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 2678400, // 31 days — hero images are static
     remotePatterns: [
       {
         protocol: "https",

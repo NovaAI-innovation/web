@@ -151,7 +151,7 @@ export default function DocumentsPage() {
           
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-3 bg-chimera-gold hover:bg-white text-black px-8 py-4 rounded-2xl font-semibold transition-all active:scale-95"
+            className="flex items-center gap-3 bg-chimera-gold hover:bg-white text-black px-8 py-4 rounded-md font-semibold transition-all active:scale-95"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -166,13 +166,13 @@ export default function DocumentsPage() {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`glass-elevated border-2 border-dashed rounded-3xl p-16 mb-12 text-center transition-all cursor-pointer ${
+          className={`glass-elevated border-2 border-dashed rounded-xl p-16 mb-12 text-center transition-all cursor-pointer ${
             isDragging 
               ? 'border-chimera-gold bg-chimera-gold/5 scale-[1.01]' 
               : 'border-chimera-border hover:border-chimera-gold/60'
           }`}
         >
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-chimera-gold/10 flex items-center justify-center mb-6">
+          <div className="mx-auto w-16 h-16 rounded-md bg-chimera-gold/10 flex items-center justify-center mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-chimera-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903 5 5 0 0110.025 1.38L20 14.5a4 4 0 01-8 8V17" />
             </svg>
@@ -198,7 +198,7 @@ export default function DocumentsPage() {
 
         <div className="space-y-3">
           {files.map(file => (
-            <div key={file.id} className="glass rounded-2xl p-6 flex items-center justify-between group">
+            <div key={file.id} className="glass rounded-xl p-6 flex items-center justify-between group">
               <div className="flex items-center gap-5">
                 <div className="w-10 h-10 rounded-xl bg-chimera-surface flex items-center justify-center text-chimera-gold">
                   {file.type.includes('pdf') ? '📕' : file.type.includes('image') ? '🖼️' : '📄'}
