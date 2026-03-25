@@ -63,3 +63,5 @@ AGENTS.md
 CLAUDE.md
 screenshots/
 .vercel
+
+.env.*

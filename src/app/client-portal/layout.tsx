@@ -22,40 +22,48 @@ export default function ClientPortalLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isAuthenticated] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return Boolean(localStorage.getItem('portalToken'));
-  });
-  const [userName] = useState<string>(() => {
-    if (typeof window === 'undefined') return '';
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isPublicRoute = pathname === '/client-portal' || pathname === '/client-portal/register';
+  const isMessagesRoute = pathname.startsWith('/client-portal/messages');
+
+  useEffect(() => {
     try {
+      setIsAuthenticated(Boolean(localStorage.getItem('portalToken')));
       const user = localStorage.getItem('portalUser');
       if (user) {
         const parsed = JSON.parse(user) as { name?: string };
-        return parsed.name ?? '';
+        setUserName(parsed.name ?? '');
+      } else {
+        setUserName('');
       }
-    } catch { /* ignore */ }
-    return '';
-  });
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [menuPathname, setMenuPathname] = useState(pathname);
-  const isPublicRoute = pathname === '/client-portal' || pathname === '/client-portal/register';
-
-  // Close mobile menu on route change
-  if (menuPathname !== pathname) {
-    setMenuPathname(pathname);
-    if (mobileMenuOpen) setMobileMenuOpen(false);
-  }
+    } catch {
+      setIsAuthenticated(false);
+      setUserName('');
+    } finally {
+      setIsHydrated(true);
+    }
+  }, []);
 
   useEffect(() => {
-    if (!isAuthenticated && !isPublicRoute) {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (isHydrated && !isAuthenticated && !isPublicRoute) {
       router.push('/client-portal');
     }
-  }, [isAuthenticated, isPublicRoute, router]);
+  }, [isAuthenticated, isHydrated, isPublicRoute, router]);
 
   useEffect(() => {
-    if (!isAuthenticated || isPublicRoute) return;
+    if (!isHydrated || !isAuthenticated || isPublicRoute) return;
+    if (isMessagesRoute) {
+      setUnreadCount(0);
+      return;
+    }
 
     const loadUnreadCount = async () => {
       try {
@@ -79,7 +87,7 @@ export default function ClientPortalLayout({
     }, 10000);
 
     return () => clearInterval(timer);
-  }, [isAuthenticated, isPublicRoute]);
+  }, [isAuthenticated, isHydrated, isMessagesRoute, isPublicRoute]);
 
   const handleSignOut = async () => {
     localStorage.removeItem('portalToken');
@@ -97,6 +105,10 @@ export default function ClientPortalLayout({
     return <ToastProvider>{children}</ToastProvider>;
   }
 
+  if (!isHydrated) {
+    return null;
+  }
+
   if (!isAuthenticated) {
     return null;
   }
@@ -109,7 +121,7 @@ export default function ClientPortalLayout({
   };
 
   return (
-    <div className="min-h-screen bg-chimera-black">
+    <div className="h-[calc(100vh-109px)] bg-chimera-black flex flex-col overflow-hidden">
       <nav className="border-b border-chimera-border bg-chimera-dark sticky top-[109px] z-40">
         <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4 sm:py-5 flex items-center justify-between">
           {/* Left: Back + Brand */}
@@ -142,7 +154,7 @@ export default function ClientPortalLayout({
                 }`}
               >
                 {link.label}
-                {link.hasBadge && unreadCount > 0 && (
+                {link.hasBadge && unreadCount > 0 && !isMessagesRoute && (
                   <span className="ml-1 text-xs bg-chimera-gold text-black px-1.5 py-0.5 rounded-full font-semibold">
                     {unreadCount}
                   </span>
@@ -191,7 +203,7 @@ export default function ClientPortalLayout({
                   }`}
                 >
                   <span>{link.label}</span>
-                  {link.hasBadge && unreadCount > 0 && (
+                  {link.hasBadge && unreadCount > 0 && !isMessagesRoute && (
                     <span className="text-xs bg-chimera-gold text-black px-2 py-0.5 rounded-full font-semibold">
                       {unreadCount}
                     </span>
@@ -215,9 +227,11 @@ export default function ClientPortalLayout({
         )}
       </nav>
 
-      <ToastProvider>
-        {children}
-      </ToastProvider>
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <ToastProvider>
+          {children}
+        </ToastProvider>
+      </div>
     </div>
   );
 }

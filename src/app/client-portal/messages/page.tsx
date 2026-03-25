@@ -414,7 +414,7 @@ export default function MessagesPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen flex flex-col bg-chimera-black overflow-hidden">
+    <div className="h-full flex flex-col bg-chimera-black overflow-hidden">
       {/* Page header */}
       <div className="px-6 lg:px-8 pt-6 pb-4 border-b border-chimera-border flex items-center justify-between shrink-0">
         <div>

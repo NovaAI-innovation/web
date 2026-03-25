@@ -2,12 +2,18 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Mail, MapPin, Phone } from 'lucide-react';
 
 const phone = process.env.NEXT_PUBLIC_PHONE || '+1 (780) 934-8696';
 const email = process.env.NEXT_PUBLIC_EMAIL || 'info@chimeraenterprise.ca';
 
 export default function Footer() {
+  const pathname = usePathname();
+  if (pathname.startsWith('/client-portal') || pathname.startsWith('/admin')) {
+    return null;
+  }
+
   return (
     <footer className="bg-chimera-dark border-t border-chimera-border pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-12 gap-12">
