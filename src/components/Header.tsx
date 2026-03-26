@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -44,7 +44,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-20">
           <Link href="/" className="flex items-center" aria-label="Chimera Enterprise Home">
             <Image
-              src="/brand/final/chimera-horizontal-on-dark.svg"
+              src="/generated_image_20260325_180513_1_nobg.png"
               alt="Chimera Enterprise"
               width={280}
               height={56}
@@ -118,7 +118,7 @@ export default function Header() {
             >
               <div className="flex justify-between items-center mb-8">
                 <Image
-                  src="/brand/final/chimera-horizontal-on-dark.svg"
+                  src="/generated_image_20260325_180513_1_nobg.png"
                   alt="Chimera Enterprise"
                   width={220}
                   height={44}
