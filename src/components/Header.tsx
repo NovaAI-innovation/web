@@ -41,32 +41,44 @@ export default function Header() {
       </div>
 
       <nav className="max-w-7xl mx-auto px-6">
-        <div className="flex items-center justify-between h-20">
-          <Link href="/" className="flex items-center" aria-label="Chimera Enterprise Home">
+        <div className="flex items-center justify-between h-40">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="flex items-center" aria-label="Chimera Enterprise Home">
+              <Image
+                src="/generated_image_20260325_180513_1_nobg.png"
+                alt="Chimera Enterprise"
+                width={240}
+                height={56}
+                className="h-14 w-auto"
+                priority
+                unoptimized
+              />
+            </Link>
+
             <Image
-              src="/generated_image_20260325_180513_1_nobg.png"
-              alt="Chimera Enterprise"
-              width={280}
+              src="/generated_image_20260325_185825_1_nobg.png"
+              alt="Credentials"
+              width={220}
               height={56}
-              className="h-10 w-auto"
+              className="h-14 w-auto"
               priority
               unoptimized
             />
-          </Link>
+          </div>
 
           <div className="hidden md:flex items-center gap-10">
             {navLinks.filter(l => l.href !== '/client-portal').map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`${isPortalRoute ? 'text-base' : 'text-sm'} font-medium text-chimera-text-secondary hover:text-white card-hover`}
+                className={`${isPortalRoute ? 'text-lg' : 'text-base'} font-medium text-chimera-text-secondary hover:text-white card-hover`}
               >
                 {link.label}
               </Link>
             ))}
             <Link
               href="/client-portal"
-              className={`${isPortalRoute ? 'text-base px-4 py-1.5' : 'text-sm px-3 py-1.5'} font-medium text-chimera-text-muted border border-chimera-border rounded-md hover:text-chimera-gold hover:border-chimera-gold/40 transition-colors`}
+              className={`${isPortalRoute ? 'text-lg px-4 py-1.5' : 'text-base px-3 py-1.5'} font-medium text-chimera-text-muted border border-chimera-border rounded-md hover:text-chimera-gold hover:border-chimera-gold/40 transition-colors`}
             >
               Client Portal
             </Link>
@@ -75,7 +87,7 @@ export default function Header() {
           <div className="hidden md:flex items-center gap-4">
             <Link
               href="/project-planning"
-              className={`flex items-center gap-2 ${isPortalRoute ? 'px-5 py-2.5 text-base' : 'px-5 py-2.5 text-sm'} font-semibold bg-chimera-gold text-black rounded-md hover:bg-chimera-gold-light transition-colors`}
+              className={`flex items-center gap-2 ${isPortalRoute ? 'px-5 py-2.5 text-lg' : 'px-5 py-2.5 text-base'} font-semibold bg-chimera-gold text-black rounded-md hover:bg-chimera-gold-light transition-colors`}
             >
               <Phone className="w-4 h-4" />
               Get Estimate
@@ -83,7 +95,7 @@ export default function Header() {
 
             <a
               href={`tel:${phone.replace(/\s+/g, '')}`}
-              className={`flex items-center gap-2 ${isPortalRoute ? 'px-5 py-2.5 text-base' : 'px-5 py-2.5 text-sm'} font-semibold bg-chimera-red-urgent text-white rounded-md hover:brightness-110 transition-colors`}
+              className={`flex items-center gap-2 ${isPortalRoute ? 'px-5 py-2.5 text-lg' : 'px-5 py-2.5 text-base'} font-semibold bg-chimera-red-urgent text-white rounded-md hover:brightness-110 transition-colors`}
             >
               <Clock className="w-4 h-4" />
               Emergency
