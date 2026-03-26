@@ -1,68 +1,54 @@
-import { cookies } from "next/headers";
+/**
+ * Client portal auth guard — thin wrapper around requireRole().
+ *
+ * Returns a StoredClient-compatible shape so existing portal routes
+ * don't need to be changed:
+ *
+ *   const auth = await requirePortalAuth();
+ *   if (!auth.ok) return auth.response;
+ *   const { client } = auth;  // id, name, email, phone
+ */
 import { NextResponse } from "next/server";
-import { parseToken, findClientById, type StoredClient } from "@/lib/client-store";
-import { failure } from "@/lib/api";
+import { requireRole } from "@/lib/auth";
 
-const SESSION_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours
+export type PortalClient = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+};
 
 export type AuthResult =
-  | { ok: true; client: StoredClient }
+  | { ok: true; client: PortalClient }
   | { ok: false; response: NextResponse };
 
-/**
- * Validates the portalToken cookie server-side.
- * Use this in every /api/client-portal/* route that requires authentication.
- *
- * @example
- * const auth = await requirePortalAuth();
- * if (!auth.ok) return auth.response;
- * const { client } = auth;
- */
 export async function requirePortalAuth(): Promise<AuthResult> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("portalToken")?.value;
+  const auth = await requireRole("client");
 
-  if (!token) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        failure("VALIDATION_ERROR", "Not authenticated"),
-        { status: 401 },
-      ),
-    };
+  if (!auth.ok) {
+    return { ok: false, response: auth.response };
   }
 
-  const parsed = parseToken(token);
-  if (!parsed) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        failure("VALIDATION_ERROR", "Invalid token"),
-        { status: 401 },
-      ),
-    };
-  }
+  const { user } = auth;
 
-  if (Date.now() - parsed.timestamp > SESSION_DURATION_MS) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        failure("VALIDATION_ERROR", "Session expired"),
-        { status: 401 },
-      ),
-    };
-  }
-
-  const client = await findClientById(parsed.clientId);
-  if (!client) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        failure("VALIDATION_ERROR", "Account not found"),
-        { status: 401 },
-      ),
-    };
-  }
-
-  return { ok: true, client };
+  return {
+    ok: true,
+    client: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone ?? "",
+    },
+  };
 }
+
+/**
+ * @deprecated Use requirePortalAuth() instead.
+ * Kept for backward compatibility; delegates to the new session system.
+ */
+export async function requirePortalAuthLegacy(): Promise<AuthResult> {
+  return requirePortalAuth();
+}
+
+// Re-export StoredClient alias for existing imports that reference it
+export type StoredClient = PortalClient;

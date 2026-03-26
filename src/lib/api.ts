@@ -2,7 +2,10 @@ export type ApiErrorCode =
   | "VALIDATION_ERROR"
   | "RATE_LIMITED"
   | "DEPENDENCY_FAILURE"
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  | "EMAIL_NOT_VERIFIED"
+  | "ACCOUNT_LOCKED"
+  | "TWO_FACTOR_REQUIRED";
 
 export type ApiSuccess<T> = {
   data: T;

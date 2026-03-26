@@ -15,41 +15,59 @@ const navLinks = [
   { href: '/client-portal/settings', label: 'Settings', icon: Settings },
 ];
 
-export default function ClientPortalLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function ClientPortalLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isHydrated, setIsHydrated] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userName, setUserName] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
-  const isPublicRoute = pathname === '/client-portal' || pathname === '/client-portal/register';
+
+  const isPublicRoute =
+    pathname === '/client-portal' ||
+    pathname === '/client-portal/register' ||
+    pathname === '/client-portal/verify-email' ||
+    pathname === '/client-portal/forgot-password' ||
+    pathname.startsWith('/client-portal/reset-password');
   const isMessagesRoute = pathname.startsWith('/client-portal/messages');
 
   useEffect(() => {
-    try {
-      setIsAuthenticated(Boolean(localStorage.getItem('portalToken')));
-      const user = localStorage.getItem('portalUser');
-      if (user) {
-        const parsed = JSON.parse(user) as { name?: string };
-        setUserName(parsed.name ?? '');
-      } else {
-        setUserName('');
+    let cancelled = false;
+    const check = async () => {
+      if (isPublicRoute) {
+        if (!cancelled) setIsHydrated(true);
+        return;
       }
-    } catch {
-      setIsAuthenticated(false);
-      setUserName('');
-    } finally {
-      setIsHydrated(true);
-    }
-  }, []);
+      try {
+        const r = await fetch('/api/auth/me');
+        if (cancelled) return;
+        if (!r.ok) {
+          setIsAuthenticated(false);
+        } else {
+          const payload = await r.json() as { data: { name: string; role: string } | null };
+          if (!cancelled) {
+            if (payload.data?.role === 'client') {
+              setIsAuthenticated(true);
+              setUserName(payload.data.name);
+              localStorage.setItem('sessionUser', JSON.stringify(payload.data));
+            } else {
+              setIsAuthenticated(false);
+            }
+          }
+        }
+      } catch {
+        if (!cancelled) setIsAuthenticated(false);
+      } finally {
+        if (!cancelled) setIsHydrated(true);
+      }
+    };
+    void check();
+    return () => { cancelled = true; };
+  }, [isPublicRoute, pathname]);
 
   useEffect(() => {
     if (isHydrated && !isAuthenticated && !isPublicRoute) {
-      router.push('/client-portal');
+      router.push('/login');
     }
   }, [isAuthenticated, isHydrated, isPublicRoute, router]);
 
@@ -66,8 +84,7 @@ export default function ClientPortalLayout({
   }, [isPublicRoute]);
 
   useEffect(() => {
-    if (!isHydrated || !isAuthenticated || isPublicRoute) return;
-    if (isMessagesRoute) {
+    if (!isHydrated || !isAuthenticated || isPublicRoute || isMessagesRoute) {
       setUnreadCount(0);
       return;
     }
@@ -76,54 +93,34 @@ export default function ClientPortalLayout({
       try {
         const response = await fetch('/api/client-portal/messages', { cache: 'no-store' });
         if (!response.ok) return;
-        const payload = (await response.json()) as {
-          data: { unreadCount: number } | null;
-          error: { code: string; message: string } | null;
-        };
-        if (payload.data) {
-          setUnreadCount(payload.data.unreadCount);
-        }
-      } catch {
-        // keep nav stable if polling fails
-      }
+        const payload = await response.json() as { data: { unreadCount: number } | null };
+        if (payload.data) setUnreadCount(payload.data.unreadCount);
+      } catch { /* keep nav stable */ }
     };
 
     void loadUnreadCount();
-    const timer = setInterval(() => {
-      void loadUnreadCount();
-    }, 10000);
-
+    const timer = setInterval(() => void loadUnreadCount(), 10000);
     return () => clearInterval(timer);
   }, [isAuthenticated, isHydrated, isMessagesRoute, isPublicRoute]);
 
   const handleSignOut = async () => {
-    localStorage.removeItem('portalToken');
-    localStorage.removeItem('portalUser');
+    localStorage.removeItem('sessionUser');
+    localStorage.removeItem('pendingVerificationEmail');
     try {
-      await fetch('/api/client-portal/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST' });
     } catch {
-      // Clear cookie client-side as fallback
-      document.cookie = 'portalToken=; Path=/; Max-Age=0; SameSite=Lax';
+      document.cookie = 'sessionToken=; Path=/; Max-Age=0; SameSite=Strict';
+      document.cookie = 'userRole=; Path=/; Max-Age=0; SameSite=Strict';
     }
-    window.location.href = '/client-portal';
+    window.location.href = '/login';
   };
 
-  if (isPublicRoute) {
-    return <ToastProvider>{children}</ToastProvider>;
-  }
-
-  if (!isHydrated) {
-    return null;
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
+  if (isPublicRoute) return <ToastProvider>{children}</ToastProvider>;
+  if (!isHydrated) return null;
+  if (!isAuthenticated) return null;
 
   const isActive = (href: string) => {
-    if (href === '/client-portal/dashboard') {
-      return pathname === href;
-    }
+    if (href === '/client-portal/dashboard') return pathname === href;
     return pathname.startsWith(href);
   };
   const activeSection = navLinks.find((link) => isActive(link.href))?.label ?? 'Client Portal';
@@ -184,11 +181,7 @@ export default function ClientPortalLayout({
             <div className="text-xs tracking-[3px] uppercase text-chimera-gold">Client Portal</div>
             <h1 className="font-display text-3xl lg:text-4xl tracking-tight text-white">{activeSection}</h1>
           </div>
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-base text-chimera-text-muted hover:text-white transition"
-            title="Back to main site"
-          >
+          <Link href="/" className="flex items-center gap-2 text-base text-chimera-text-muted hover:text-white transition" title="Back to main site">
             <ArrowLeft className="w-4 h-4" />
             <span>Main Site</span>
           </Link>
@@ -213,9 +206,7 @@ export default function ClientPortalLayout({
         </div>
 
         <div className="flex-1 min-h-0 overflow-auto">
-          <ToastProvider>
-            {children}
-          </ToastProvider>
+          <ToastProvider>{children}</ToastProvider>
         </div>
       </div>
     </div>

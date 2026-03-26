@@ -1,19 +1,22 @@
+/**
+ * POST /api/client-portal/auth/reset-password
+ * @deprecated Use POST /api/auth/reset-password instead.
+ */
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createHash } from "node:crypto";
 import { success, failure } from "@/lib/api";
-import { resetPasswordWithToken } from "@/lib/client-store";
+import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/auth";
 import { logEvent } from "@/lib/observability";
 import { getRequestId } from "@/lib/request-id";
 
 const schema = z.object({
-  token: z.string().min(1, "Reset token is required"),
-  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+  token: z.string().min(1),
+  newPassword: z.string().min(8).max(128),
 });
 
-const route = "/api/client-portal/auth/reset-password";
-
 export async function POST(request: Request) {
-  const start = Date.now();
   const requestId = getRequestId(request.headers);
 
   let body: unknown;
@@ -31,35 +34,23 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await resetPasswordWithToken(validated.data.token, validated.data.newPassword);
+  const tokenHash = createHash("sha256").update(validated.data.token).digest("hex");
+  const resetToken = await prisma.passwordResetToken.findUnique({ where: { tokenHash } });
 
-  if (!result.success) {
-    logEvent({
-      level: "error",
-      message: "Password reset failed",
-      requestId,
-      route,
-      status: 400,
-      durationMs: Date.now() - start,
-      context: { reason: result.error },
-    });
-    return NextResponse.json(
-      failure("VALIDATION_ERROR", result.error ?? "Reset failed"),
-      { status: 400, headers: { "x-request-id": requestId } },
-    );
+  if (!resetToken || resetToken.usedAt) {
+    return NextResponse.json(failure("VALIDATION_ERROR", "Invalid or expired reset link"), { status: 400 });
+  }
+  if (resetToken.expiresAt < new Date()) {
+    return NextResponse.json(failure("VALIDATION_ERROR", "Reset link has expired"), { status: 400 });
   }
 
-  logEvent({
-    level: "info",
-    message: "Password reset successful",
-    requestId,
-    route,
-    status: 200,
-    durationMs: Date.now() - start,
-  });
+  const newHash = await hashPassword(validated.data.newPassword);
 
-  return NextResponse.json(
-    success({ message: "Password has been reset. You can now sign in." }),
-    { headers: { "x-request-id": requestId } },
-  );
+  await prisma.$transaction([
+    prisma.passwordResetToken.update({ where: { id: resetToken.id }, data: { usedAt: new Date() } }),
+    prisma.user.update({ where: { id: resetToken.userId }, data: { passwordHash: newHash, legacySalt: null, failedLoginCount: 0, accountLockedAt: null, accountLockedUntil: null } }),
+  ]);
+
+  logEvent({ level: "info", message: "Password reset complete", requestId, route: "/api/client-portal/auth/reset-password", status: 200 });
+  return NextResponse.json(success({ message: "Password has been reset. You can now sign in." }));
 }

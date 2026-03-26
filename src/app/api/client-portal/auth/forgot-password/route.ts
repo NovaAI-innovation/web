@@ -1,19 +1,23 @@
+/**
+ * POST /api/client-portal/auth/forgot-password
+ * @deprecated Use POST /api/auth/forgot-password instead.
+ * Delegates to the unified implementation.
+ */
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createHash, randomBytes } from "node:crypto";
 import { success, failure } from "@/lib/api";
-import { createResetToken, findClientByEmail } from "@/lib/client-store";
+import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 import { logEvent } from "@/lib/observability";
-import { getRequestId } from "@/lib/request-id";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { getRequestId } from "@/lib/request-id";
 
 const schema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-const route = "/api/client-portal/auth/forgot-password";
-
 export async function POST(request: Request) {
-  const start = Date.now();
   const requestId = getRequestId(request.headers);
 
   let body: unknown;
@@ -25,59 +29,30 @@ export async function POST(request: Request) {
 
   const validated = schema.safeParse(body);
   if (!validated.success) {
-    return NextResponse.json(
-      failure("VALIDATION_ERROR", "Please enter a valid email address"),
-      { status: 400 },
-    );
+    return NextResponse.json(failure("VALIDATION_ERROR", "Please enter a valid email address"), { status: 400 });
   }
 
-  const token = await createResetToken(validated.data.email);
+  const email = validated.data.email.toLowerCase();
+  const emailKey = createHash("sha256").update(email).digest("hex").slice(0, 16);
+  const { allowed } = rateLimit(`forgot-password:${emailKey}`, 3, 60 * 60 * 1000);
 
-  // Always return success to prevent email enumeration
-  logEvent({
-    level: "info",
-    message: token ? "Password reset token created" : "Password reset requested for unknown email",
-    requestId,
-    route,
-    status: 200,
-    durationMs: Date.now() - start,
-    context: { emailProvided: true, tokenCreated: !!token },
-  });
+  const user = allowed ? await prisma.user.findUnique({ where: { email } }) : null;
 
-  if (token) {
-    const client = await findClientByEmail(validated.data.email);
-    if (client) {
-      const emailResult = await sendPasswordResetEmail({
-        to: client.email,
-        resetToken: token,
-        requestId,
-      });
-      logEvent({
-        level: "info",
-        message: `Password reset email ${emailResult}`,
-        requestId,
-        route,
-        context: { emailResult },
-      });
-    }
+  if (user) {
+    const rawToken = randomBytes(32).toString("hex");
+    const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+    await prisma.passwordResetToken.create({
+      data: { userId: user.id, tokenHash, expiresAt: new Date(Date.now() + 60 * 60 * 1000) },
+    });
 
-    // In development, also log the link for easy testing without an email provider
+    await sendPasswordResetEmail({ to: user.email, name: user.name, resetToken: rawToken, requestId }).catch(() => null);
+
     if (process.env.NODE_ENV === "development") {
-      logEvent({
-        level: "info",
-        message: `[DEV] Reset link: /client-portal/reset-password?token=${token}`,
-        requestId,
-        route,
-      });
+      logEvent({ level: "info", message: `[DEV] Reset link: /client-portal/reset-password?token=${rawToken}`, requestId, route: "/api/client-portal/auth/forgot-password" });
     }
   }
 
   return NextResponse.json(
-    success({
-      message: "If an account with that email exists, we've sent password reset instructions.",
-      // Include token in dev mode so the flow is testable
-      ...(process.env.NODE_ENV === "development" ? { resetToken: token } : {}),
-    }),
-    { headers: { "x-request-id": requestId } },
+    success({ message: "If an account with that email exists, we've sent password reset instructions." }),
   );
 }

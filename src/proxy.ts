@@ -1,65 +1,84 @@
+/**
+ * Next.js 16 proxy (middleware) — role-based routing enforcement.
+ *
+ * Reads the `sessionToken` cookie (presence check) and the `userRole`
+ * cookie (routing hint) to enforce portal separation.
+ *
+ * Authorization is NOT performed here — that happens server-side in
+ * requireRole() inside each API route. This proxy handles UX routing
+ * only (e.g. redirect unauthenticated users to /login).
+ */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PUBLIC_PORTAL_ROUTES = ['/client-portal', '/client-portal/register'];
-const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
-const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+// Auth pages within each portal — accessible without a session
+const PORTAL_AUTH_PATHS = [
+  '/client-portal',
+  '/client-portal/register',
+  '/client-portal/forgot-password',
+  '/client-portal/reset-password',
+  '/client-portal/verify-email',
+  '/admin',
+  '/login',
+  '/login/verify',
+];
 
-function isPortalTokenValid(token: string): boolean {
-  try {
-    const decoded = Buffer.from(token, 'base64url').toString('utf-8');
-    const parts = decoded.split(':');
-    if (parts.length < 3) return false;
-    const timestamp = parseInt(parts[1], 10);
-    if (isNaN(timestamp)) return false;
-    return Date.now() - timestamp < EIGHT_HOURS_MS;
-  } catch {
-    return false;
-  }
-}
-
-function isAdminTokenValid(token: string): boolean {
-  try {
-    const decoded = Buffer.from(token, 'base64url').toString('utf-8');
-    const parts = decoded.split(':');
-    if (parts[0] !== 'admin') return false;
-    const timestamp = parseInt(parts[1], 10);
-    if (isNaN(timestamp)) return false;
-    return Date.now() - timestamp < TWENTY_FOUR_HOURS_MS;
-  } catch {
-    return false;
-  }
-}
+// Role → portal prefix map
+const ROLE_PREFIX: Record<string, string> = {
+  client: '/client-portal',
+  admin: '/admin',
+  developer: '/developer',
+};
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Client portal protection
-  if (pathname.startsWith('/client-portal')) {
-    const token = request.cookies.get('portalToken')?.value;
-    const hasValidToken = token ? isPortalTokenValid(token) : false;
-
-    if (PUBLIC_PORTAL_ROUTES.includes(pathname)) {
-      if (hasValidToken) {
-        return NextResponse.redirect(new URL('/client-portal/dashboard', request.url));
-      }
-      return NextResponse.next();
-    }
-
-    if (!hasValidToken) {
-      const response = NextResponse.redirect(new URL('/client-portal', request.url));
-      if (token) response.cookies.delete('portalToken');
-      return response;
-    }
+  // Pass through API routes and static assets
+  if (pathname.startsWith('/api') || pathname.includes('.')) {
+    return NextResponse.next();
   }
 
-  // Admin portal protection
-  if (pathname.startsWith('/admin') && pathname !== '/admin' && pathname !== '/admin/') {
-    const token = request.cookies.get('adminToken')?.value;
-    if (!token || !isAdminTokenValid(token)) {
-      const response = NextResponse.redirect(new URL('/admin', request.url));
-      if (token) response.cookies.delete('adminToken');
-      return response;
+  const sessionToken = request.cookies.get('sessionToken')?.value;
+  const userRole = request.cookies.get('userRole')?.value;
+
+  // Portal auth pages — if user has a session, redirect to their dashboard
+  const isPortalAuthPath = PORTAL_AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(p + '?'));
+  if (isPortalAuthPath) {
+    if (sessionToken && userRole) {
+      const home = ROLE_PREFIX[userRole];
+      if (home && (pathname === '/client-portal' || pathname === '/admin' || pathname === '/login')) {
+        return NextResponse.redirect(new URL(`${home}/dashboard`, request.url));
+      }
+    }
+    return NextResponse.next();
+  }
+
+  // Protected portal routes — require a session
+  const isClientPortal = pathname.startsWith('/client-portal/');
+  const isAdminPortal = pathname.startsWith('/admin/');
+  const isDeveloperPortal = pathname.startsWith('/developer/');
+
+  if (isClientPortal || isAdminPortal || isDeveloperPortal) {
+    if (!sessionToken) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('from', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Cross-role access check using the userRole hint cookie
+    if (userRole) {
+      const expectedPrefix = ROLE_PREFIX[userRole];
+      if (expectedPrefix) {
+        if (isClientPortal && userRole !== 'client') {
+          return NextResponse.redirect(new URL(`${expectedPrefix}/dashboard`, request.url));
+        }
+        if (isAdminPortal && userRole !== 'admin') {
+          return NextResponse.redirect(new URL(`${expectedPrefix}/dashboard`, request.url));
+        }
+        if (isDeveloperPortal && userRole !== 'developer') {
+          return NextResponse.redirect(new URL(`${expectedPrefix}/dashboard`, request.url));
+        }
+      }
     }
   }
 
@@ -67,5 +86,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/client-portal/:path*', '/admin/:path*'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
 };
