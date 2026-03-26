@@ -31,3 +31,14 @@ model User {
   createdAt       DateTime               @default(now())
 
   notificationPrefs NotificationPreference?
+}
+
+model NotificationPreference {
+  userId         String @id
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emailMessages  Boolean @default(true)
+  emailMilestones Boolean @default(true)
+  emailBudget    Boolean @default(false)
+  emailMarketing Boolean @default(false)
+}
