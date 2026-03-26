@@ -23,18 +23,18 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-md border-b border-chimera-border">
-      <div className="bg-chimera-surface py-3 text-sm border-b border-chimera-border/60">
+      <div className="bg-chimera-surface py-1.5 text-xs border-b border-chimera-border/60">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-center gap-6 md:gap-8 text-chimera-text-muted">
           <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-chimera-gold" />
+            <ShieldCheck className="w-3.5 h-3.5 text-chimera-gold" />
             <span>Licensed</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <BadgeCheck className="w-4 h-4 text-chimera-gold" />
+            <BadgeCheck className="w-3.5 h-3.5 text-chimera-gold" />
             <span>Insured</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-chimera-gold" />
+            <ShieldCheck className="w-3.5 h-3.5 text-chimera-gold" />
             <span>BBB A+</span>
           </div>
         </div>
@@ -42,14 +42,14 @@ export default function Header() {
 
       <nav className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-40">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center" aria-label="Chimera Enterprise Home">
               <Image
                 src="/generated_image_20260325_180513_1_nobg.png"
                 alt="Chimera Enterprise"
-                width={320}
-                height={128}
-                className="h-32 w-auto"
+                width={280}
+                height={56}
+                className="h-14 w-auto"
                 priority
                 unoptimized
               />
@@ -58,46 +58,46 @@ export default function Header() {
             <Image
               src="/generated_image_20260325_185825_1_nobg.png"
               alt="Credentials"
-              width={300}
-              height={128}
-              className="h-32 w-auto"
+              width={220}
+              height={56}
+              className="h-14 w-auto"
               priority
               unoptimized
             />
           </div>
 
-          <div className="hidden md:flex items-center gap-12">
+          <div className="hidden md:flex items-center gap-10">
             {navLinks.filter(l => l.href !== '/client-portal').map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`${isPortalRoute ? 'text-2xl' : 'text-xl'} font-medium text-chimera-text-secondary hover:text-white card-hover`}
+                className={`${isPortalRoute ? 'text-lg' : 'text-sm'} font-medium text-chimera-text-secondary hover:text-white card-hover`}
               >
                 {link.label}
               </Link>
             ))}
             <Link
               href="/client-portal"
-              className={`${isPortalRoute ? 'text-2xl px-6 py-3' : 'text-xl px-5 py-3'} font-medium text-chimera-text-muted border border-chimera-border rounded-md hover:text-chimera-gold hover:border-chimera-gold/40 transition-colors`}
+              className={`${isPortalRoute ? 'text-lg px-4 py-2' : 'text-sm px-3 py-1.5'} font-medium text-chimera-text-muted border border-chimera-border rounded-md hover:text-chimera-gold hover:border-chimera-gold/40 transition-colors`}
             >
               Client Portal
             </Link>
           </div>
 
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-4">
             <Link
               href="/project-planning"
-              className={`flex items-center gap-3 ${isPortalRoute ? 'px-8 py-5 text-2xl' : 'px-7 py-4 text-xl'} font-semibold bg-chimera-gold text-black rounded-md hover:bg-chimera-gold-light transition-colors`}
+              className={`flex items-center gap-2 ${isPortalRoute ? 'px-6 py-3 text-lg' : 'px-5 py-2.5 text-sm'} font-semibold bg-chimera-gold text-black rounded-md hover:bg-chimera-gold-light transition-colors`}
             >
-              <Phone className="w-5 h-5" />
+              <Phone className="w-4 h-4" />
               Get Estimate
             </Link>
 
             <a
               href={`tel:${phone.replace(/\s+/g, '')}`}
-              className={`flex items-center gap-3 ${isPortalRoute ? 'px-8 py-5 text-2xl' : 'px-7 py-4 text-xl'} font-semibold bg-chimera-red-urgent text-white rounded-md hover:brightness-110 transition-colors`}
+              className={`flex items-center gap-2 ${isPortalRoute ? 'px-6 py-3 text-lg' : 'px-5 py-2.5 text-sm'} font-semibold bg-chimera-red-urgent text-white rounded-md hover:brightness-110 transition-colors`}
             >
-              <Clock className="w-5 h-5" />
+              <Clock className="w-4 h-4" />
               Emergency
             </a>
           </div>
@@ -107,7 +107,7 @@ export default function Header() {
             className="md:hidden p-2 text-white"
             aria-label="Toggle menu"
           >
-            {isOpen ? <X size={28} /> : <Menu size={28} />}
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </nav>
