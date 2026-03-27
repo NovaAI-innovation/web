@@ -69,12 +69,25 @@ export function getDocumentSource(filename: string): DocumentSource {
 }
 
 export function isContractorDocument(filename: string): boolean {
-  return getDocumentSource(filename) === 'contractor';
+  const meta = getDocumentMeta(filename);
+  return meta?.source === 'contractor';
 }
 
 export function getDocumentMeta(filename: string): DocumentSourceEntry | null {
   const data = readFile();
   return data.documents.find((d) => d.filename === filename) ?? null;
+}
+
+export function canClientAccessDocument(filename: string, clientId: string): boolean {
+  const meta = getDocumentMeta(filename);
+  if (!meta) return false;
+  return meta.clientId === clientId;
+}
+
+export function isClientOwnedDocument(filename: string, clientId: string): boolean {
+  const meta = getDocumentMeta(filename);
+  if (!meta) return false;
+  return meta.clientId === clientId && meta.source === 'client';
 }
 
 export function getDocumentsByProject(projectId: string): DocumentSourceEntry[] {

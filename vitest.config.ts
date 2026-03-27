@@ -13,8 +13,26 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     coverage: {
       provider: "v8",
-      reporter: ["text", "html"],
-      exclude: ["src/**/*.d.ts", "src/app/**/page.tsx", "src/app/**/*.css"],
+      reporter: ["text", "html", "json", "lcov"],
+      exclude: [
+        "src/**/*.d.ts",
+        "src/app/**/page.tsx",
+        "src/app/**/*.css",
+        "src/**/*.test.ts",
+        "src/**/__tests__/**",
+        "tests/**",
+        "**/*.config.*",
+        "prisma/**",
+        "scripts/**",
+      ],
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 60,
+        statements: 70,
+      },
     },
+    include: ["src/**/*.{test,spec}.{js,ts,jsx,tsx}"],
+    exclude: ["node_modules", ".next", "tests"],
   },
 });

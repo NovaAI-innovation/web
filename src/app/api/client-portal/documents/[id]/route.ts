@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { failure, success } from "@/lib/api";
 import { logEvent } from "@/lib/observability";
 import { getRequestId } from "@/lib/request-id";
+import { requirePortalAuth } from "@/lib/portal-auth";
+import { isClientOwnedDocument } from "@/lib/document-source";
 
 const UPLOAD_DIR = resolve(join(process.cwd(), ".data", "uploads"));
 
@@ -11,10 +13,13 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-export async function DELETE(_request: Request, { params }: Props) {
+export async function DELETE(request: Request, { params }: Props) {
   const startedAt = Date.now();
-  const requestId = getRequestId(new Headers());
+  const requestId = getRequestId(request.headers);
   const route = "/api/client-portal/documents/[id]";
+
+  const auth = await requirePortalAuth();
+  if (!auth.ok) return auth.response;
 
   const { id } = await params;
 
@@ -27,7 +32,6 @@ export async function DELETE(_request: Request, { params }: Props) {
   }
 
   try {
-    // The id could be the filename directly, or a UUID that we need to match
     let files: string[] = [];
     try {
       files = await readdir(UPLOAD_DIR);
@@ -38,10 +42,16 @@ export async function DELETE(_request: Request, { params }: Props) {
       );
     }
 
-    // Try exact match first (filename as id), then partial match
-    const target = files.find((f) => f === id) ?? files.find((f) => f.includes(id));
+    const target = files.find((f) => f === id);
 
     if (!target) {
+      return NextResponse.json(
+        failure("VALIDATION_ERROR", "Document not found"),
+        { status: 404, headers: { "x-request-id": requestId } },
+      );
+    }
+
+    if (!isClientOwnedDocument(target, auth.client.id)) {
       return NextResponse.json(
         failure("VALIDATION_ERROR", "Document not found"),
         { status: 404, headers: { "x-request-id": requestId } },

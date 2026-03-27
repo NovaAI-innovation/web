@@ -38,14 +38,6 @@ temp/
 **/tmp/
 **/temp/
 
-# Tests and test artifacts
-tests/
-test/
-test-results/
-playwright-report/
-playwright/.cache/
-screenshots/
-*.snap
 
 # Operational/support directories
 scripts/
@@ -72,13 +64,6 @@ npm-shrinkwrap.json
 yarn.lock
 pnpm-lock.yaml
 
-# Config files
-*config.js
-*config.cjs
-*config.mjs
-*config.ts
-*config.json
-tsconfig*.json
 
 # Documentation/text instructions
 *.md

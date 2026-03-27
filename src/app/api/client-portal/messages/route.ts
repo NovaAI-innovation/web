@@ -1,4 +1,4 @@
-import fs from "fs";
+import { readFile } from "node:fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -11,9 +11,9 @@ import { generatePortalAgentReply } from "@/lib/portal-agent";
 import { addAgentMemoryEntry } from "@/lib/portal-agent-memory";
 import { failure, success } from "@/lib/api";
 import { logEvent } from "@/lib/observability";
-import { getRequestId } from "@/lib/request-id";
-import { rateLimit } from "@/lib/rate-limit";
 import { requirePortalAuth } from "@/lib/portal-auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { getRequestId } from "@/lib/request-id";
 
 const attachmentSchema = z.object({
   filename: z.string().min(1),
@@ -26,6 +26,30 @@ const createMessageSchema = z.object({
   attachment: attachmentSchema.optional(),
 });
 
+async function buildAttachmentContext(
+  attachment: z.infer<typeof attachmentSchema> | undefined,
+): Promise<{ filename: string; text: string } | null> {
+  if (!attachment) return null;
+
+  if (!attachment.filename.match(/\.(txt|md|csv)$/i)) {
+    const sizeKb = Math.round(attachment.size / 1024);
+    return {
+      filename: attachment.originalName,
+      text: `[Binary file: ${attachment.originalName}, ${sizeKb} KB - content not extractable in current version]`,
+    };
+  }
+
+  const uploadsDir = path.join(process.cwd(), ".data", "uploads");
+  const filePath = path.join(uploadsDir, attachment.filename);
+
+  try {
+    const text = await readFile(filePath, "utf-8");
+    return { filename: attachment.originalName, text };
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: Request) {
   const startedAt = Date.now();
   const requestId = getRequestId(request.headers);
@@ -35,8 +59,13 @@ export async function GET(request: Request) {
   if (!auth.ok) return auth.response;
 
   try {
+    const readStartedAt = Date.now();
     const messages = await getPortalMessages(auth.client.id);
+    const readDurationMs = Date.now() - readStartedAt;
+
+    const aggregateStartedAt = Date.now();
     const unreadCount = getUnreadCountForClient(messages);
+    const aggregateDurationMs = Date.now() - aggregateStartedAt;
 
     const endedAt = Date.now();
     logEvent({
@@ -46,7 +75,14 @@ export async function GET(request: Request) {
       route,
       status: 200,
       durationMs: endedAt - startedAt,
-      context: { count: messages.length, unreadCount },
+      context: {
+        count: messages.length,
+        unreadCount,
+        timings: {
+          readDurationMs,
+          aggregateDurationMs,
+        },
+      },
     });
 
     return NextResponse.json(
@@ -104,8 +140,10 @@ export async function POST(request: Request) {
   }
 
   try {
+    const parseStartedAt = Date.now();
     const json = await request.json();
     const parsed = createMessageSchema.safeParse(json);
+    const parseDurationMs = Date.now() - parseStartedAt;
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -114,52 +152,44 @@ export async function POST(request: Request) {
       );
     }
 
+    const persistClientMessageStartedAt = Date.now();
     const message = await addPortalMessage({
       clientId: auth.client.id,
       author: "client",
       body: parsed.data.body,
       ...(parsed.data.attachment ? { attachment: parsed.data.attachment } : {}),
     });
+    const persistClientMessageDurationMs = Date.now() - persistClientMessageStartedAt;
 
-    // Build 1-time attachment context if present
-    let attachmentContext: { filename: string; text: string } | null = null;
-    if (parsed.data.attachment) {
-      const uploadsDir = path.join(process.cwd(), '.data', 'uploads');
-      const filePath = path.join(uploadsDir, parsed.data.attachment.filename);
-      try {
-        if (parsed.data.attachment.filename.match(/\.(txt|md|csv)$/i)) {
-          const text = fs.readFileSync(filePath, 'utf-8');
-          attachmentContext = { filename: parsed.data.attachment.originalName, text };
-        } else {
-          const sizeKb = Math.round(parsed.data.attachment.size / 1024);
-          attachmentContext = {
-            filename: parsed.data.attachment.originalName,
-            text: `[Binary file: ${parsed.data.attachment.originalName}, ${sizeKb} KB — content not extractable in current version]`,
-          };
-        }
-      } catch { /* file not readable */ }
-    }
+    const attachmentContextStartedAt = Date.now();
+    const attachmentContext = await buildAttachmentContext(parsed.data.attachment);
+    const attachmentContextDurationMs = Date.now() - attachmentContextStartedAt;
 
+    const agentStartedAt = Date.now();
     const agent = await generatePortalAgentReply({
       clientId: auth.client.id,
       clientName: auth.client.name,
       query: parsed.data.body,
       attachmentContext,
     });
+    const agentDurationMs = Date.now() - agentStartedAt;
 
-    await addPortalMessage({
-      clientId: auth.client.id,
-      author: "agent",
-      body: agent.body,
-      reasoning: agent.reasoning,
-    });
-
-    await addAgentMemoryEntry({
-      clientId: auth.client.id,
-      query: parsed.data.body,
-      responseSummary: agent.memorySummary,
-      artifactRefs: agent.artifactRefs,
-    });
+    const persistAgentAndMemoryStartedAt = Date.now();
+    await Promise.all([
+      addPortalMessage({
+        clientId: auth.client.id,
+        author: "agent",
+        body: agent.body,
+        reasoning: agent.reasoning,
+      }),
+      addAgentMemoryEntry({
+        clientId: auth.client.id,
+        query: parsed.data.body,
+        responseSummary: agent.memorySummary,
+        artifactRefs: agent.artifactRefs,
+      }),
+    ]);
+    const persistAgentAndMemoryDurationMs = Date.now() - persistAgentAndMemoryStartedAt;
 
     const endedAt = Date.now();
     logEvent({
@@ -169,7 +199,17 @@ export async function POST(request: Request) {
       route,
       status: 200,
       durationMs: endedAt - startedAt,
-      context: { messageId: message.id, clientId: auth.client.id },
+      context: {
+        messageId: message.id,
+        clientId: auth.client.id,
+        timings: {
+          parseDurationMs,
+          persistClientMessageDurationMs,
+          attachmentContextDurationMs,
+          agentDurationMs,
+          persistAgentAndMemoryDurationMs,
+        },
+      },
     });
 
     return NextResponse.json(

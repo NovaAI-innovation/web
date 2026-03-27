@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { parseToken, findClientById } from '@/lib/client-store';
 import { getProjectsByClient } from '@/lib/project-store';
-import { getInvoicesByProject } from '@/lib/invoice-store';
+import { getInvoicesByClient } from '@/lib/invoice-store';
 
 type ProjectCard = {
   id: string;
@@ -29,27 +29,27 @@ export default async function ProjectsPage() {
   } catch { /* fallback to empty */ }
 
   const projects = await getProjectsByClient(clientId);
-
-  const mappedProjects: ProjectCard[] = await Promise.all(
-    projects.map(async (p) => {
-      const invoices = await getInvoicesByProject(p.id);
-      const hasUnpaidBalance = invoices.some((inv) => inv.status !== 'paid');
-      return {
-        id: p.id,
-        title: p.name,
-        status: p.status === 'active' ? 'In Progress' : p.status === 'planning' ? 'Planning' : 'Completed',
-        progress: p.progress,
-        due: new Date(p.schedule.currentEnd).toLocaleDateString('en-US', {
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric'
-        }),
-        phase: p.milestones.findLast(m => !m.completed)?.title || p.milestones[0]?.title || 'Project Complete',
-        milestones: p.milestones,
-        hasUnpaidBalance,
-      };
-    })
+  const clientInvoices = clientId ? await getInvoicesByClient(clientId) : [];
+  const unpaidProjectIds = new Set(
+    clientInvoices
+      .filter((invoice) => invoice.status !== 'paid')
+      .map((invoice) => invoice.projectId),
   );
+
+  const mappedProjects: ProjectCard[] = projects.map((p) => ({
+    id: p.id,
+    title: p.name,
+    status: p.status === 'active' ? 'In Progress' : p.status === 'planning' ? 'Planning' : 'Completed',
+    progress: p.progress,
+    due: new Date(p.schedule.currentEnd).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    }),
+    phase: p.milestones.findLast((m) => !m.completed)?.title || p.milestones[0]?.title || 'Project Complete',
+    milestones: p.milestones,
+    hasUnpaidBalance: unpaidProjectIds.has(p.id),
+  }));
 
   return (
     <div className="min-h-screen bg-chimera-black p-10">

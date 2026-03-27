@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { logEvent } from "@/lib/observability";
 import { getRequestId } from "@/lib/request-id";
 import { requirePortalAuth } from "@/lib/portal-auth";
+import { canClientAccessDocument } from "@/lib/document-source";
 
 const UPLOAD_DIR = resolve(join(process.cwd(), ".data", "uploads"));
 
@@ -26,6 +27,13 @@ export async function GET(request: Request, { params }: Props) {
     return NextResponse.json(
       { data: null, error: { code: "VALIDATION_ERROR", message: "Invalid filename" } },
       { status: 400 },
+    );
+  }
+
+  if (!canClientAccessDocument(filename, auth.client.id)) {
+    return NextResponse.json(
+      { data: null, error: { code: "VALIDATION_ERROR", message: "Document not found" } },
+      { status: 404 },
     );
   }
 

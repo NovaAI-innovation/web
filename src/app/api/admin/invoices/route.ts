@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
-import { getAllInvoices, createInvoice } from "@/lib/invoice-store";
+import { createInvoice, getAllInvoices, getInvoiceListSummary } from "@/lib/invoice-store";
 import { success, failure } from "@/lib/api";
 
 const lineItemSchema = z.object({
@@ -26,11 +26,16 @@ const createSchema = z.object({
   lineItems: z.array(lineItemSchema).default([]),
 });
 
-export async function GET() {
+export async function GET(request?: Request) {
   const auth = await requireAdminAuth();
   if (!auth.ok) return auth.response;
-  const invoices = await getAllInvoices();
-  return NextResponse.json(success(invoices));
+  const summary = request ? new URL(request.url).searchParams.get("summary") : null;
+  const invoices = summary === "1" ? await getInvoiceListSummary() : await getAllInvoices();
+  return NextResponse.json(success(invoices), {
+    headers: {
+      "Cache-Control": "private, max-age=15, stale-while-revalidate=30",
+    },
+  });
 }
 
 export async function POST(request: Request) {

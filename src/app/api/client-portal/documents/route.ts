@@ -5,7 +5,7 @@ import { success } from "@/lib/api";
 import { logEvent } from "@/lib/observability";
 import { getRequestId } from "@/lib/request-id";
 import { requirePortalAuth } from "@/lib/portal-auth";
-import { isContractorDocument } from "@/lib/document-source";
+import { canClientAccessDocument, isContractorDocument } from "@/lib/document-source";
 
 const UPLOAD_DIR = resolve(join(process.cwd(), ".data", "uploads"));
 
@@ -49,7 +49,11 @@ export async function GET(request: Request) {
           url: `/api/client-portal/documents/download/${filename}`,
         };
       })
-    ).then((list) => list.filter((f) => isContractorDocument(f.filename)));
+    ).then((list) =>
+      list.filter(
+        (f) => isContractorDocument(f.filename) && canClientAccessDocument(f.filename, auth.client.id),
+      ),
+    );
 
     const endedAt = Date.now();
     logEvent({

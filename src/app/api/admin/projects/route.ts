@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
-import { getAllProjects, createProject } from "@/lib/project-store";
+import { createProject, getAllProjects, getProjectListSummary } from "@/lib/project-store";
 import { success, failure } from "@/lib/api";
 
 const createSchema = z.object({
@@ -27,11 +27,16 @@ const createSchema = z.object({
   activity: z.array(z.any()).default([]),
 });
 
-export async function GET() {
+export async function GET(request?: Request) {
   const auth = await requireAdminAuth();
   if (!auth.ok) return auth.response;
-  const projects = await getAllProjects();
-  return NextResponse.json(success(projects));
+  const summary = request ? new URL(request.url).searchParams.get("summary") : null;
+  const projects = summary === "1" ? await getProjectListSummary() : await getAllProjects();
+  return NextResponse.json(success(projects), {
+    headers: {
+      "Cache-Control": "private, max-age=15, stale-while-revalidate=30",
+    },
+  });
 }
 
 export async function POST(request: Request) {

@@ -1,6 +1,6 @@
 import { requireAdminAuth } from '@/lib/admin-auth';
 import { getAllClients } from '@/lib/client-store';
-import { getProjectsByClient } from '@/lib/project-store';
+import { getAllProjects } from '@/lib/project-store';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Users, ChevronRight, FolderKanban } from 'lucide-react';
@@ -9,18 +9,25 @@ export default async function AdminClientsPage() {
   const auth = await requireAdminAuth();
   if (!auth.ok) redirect('/admin');
 
-  const clients = await getAllClients();
+  const [clients, projects] = await Promise.all([getAllClients(), getAllProjects()]);
+  const countsByClient = new Map<string, { projectCount: number; activeCount: number }>();
 
-  const withMeta = await Promise.all(
-    clients.map(async (c) => {
-      const projects = await getProjectsByClient(c.id);
-      return {
-        ...c,
-        projectCount: projects.length,
-        activeCount: projects.filter((p) => p.status === 'active').length,
-      };
-    }),
-  );
+  for (const project of projects) {
+    if (!project.clientId) continue;
+    const current = countsByClient.get(project.clientId) ?? { projectCount: 0, activeCount: 0 };
+    current.projectCount += 1;
+    if (project.status === 'active') current.activeCount += 1;
+    countsByClient.set(project.clientId, current);
+  }
+
+  const withMeta = clients.map((c) => {
+    const counts = countsByClient.get(c.id) ?? { projectCount: 0, activeCount: 0 };
+    return {
+      ...c,
+      projectCount: counts.projectCount,
+      activeCount: counts.activeCount,
+    };
+  });
 
   return (
     <div className="p-8">

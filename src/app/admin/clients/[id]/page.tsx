@@ -2,7 +2,7 @@ import { requireAdminAuth } from '@/lib/admin-auth';
 import { findClientById } from '@/lib/client-store';
 import { getProjectsByClient } from '@/lib/project-store';
 import { getInvoicesByClient } from '@/lib/invoice-store';
-import { getPortalMessages } from '@/lib/portal-messages';
+import { getPortalMessageCount } from '@/lib/portal-messages';
 import { getAgentMemoryForClient } from '@/lib/portal-agent-memory';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -20,10 +20,10 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
   const client = await findClientById(id);
   if (!client) notFound();
 
-  const [projects, invoices, messages, memoryEntries] = await Promise.all([
+  const [projects, invoices, messageCount, memoryEntries] = await Promise.all([
     getProjectsByClient(id),
     getInvoicesByClient(id),
-    getPortalMessages(id),
+    getPortalMessageCount(id),
     getAgentMemoryForClient(id, 100),
   ]);
 
@@ -58,7 +58,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         {[
           { label: 'Projects', value: String(projects.length), icon: FolderKanban },
           { label: 'Outstanding', value: fmt(outstanding), icon: FileText },
-          { label: 'Messages', value: String(messages.length), icon: MessageSquare },
+          { label: 'Messages', value: String(messageCount), icon: MessageSquare },
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} className="bg-chimera-dark border border-chimera-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
@@ -146,7 +146,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         <div className="flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-chimera-gold" />
           <span className="text-sm font-medium">View Message Thread</span>
-          <span className="text-xs text-chimera-text-muted">({messages.length} messages)</span>
+          <span className="text-xs text-chimera-text-muted">({messageCount} messages)</span>
         </div>
         <ArrowLeft className="w-4 h-4 text-chimera-text-muted rotate-180" />
       </Link>

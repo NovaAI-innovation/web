@@ -3,7 +3,7 @@ import { requireAdminAuth } from "@/lib/admin-auth";
 import { findClientById } from "@/lib/client-store";
 import { getProjectsByClient } from "@/lib/project-store";
 import { getInvoicesByClient } from "@/lib/invoice-store";
-import { getPortalMessages } from "@/lib/portal-messages";
+import { getPortalMessageCount } from "@/lib/portal-messages";
 import { success, failure } from "@/lib/api";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -16,10 +16,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json(failure("VALIDATION_ERROR", "Client not found"), { status: 404 });
   }
 
-  const [projects, invoices, messages] = await Promise.all([
+  const [projects, invoices, messageCount] = await Promise.all([
     getProjectsByClient(id),
     getInvoicesByClient(id),
-    getPortalMessages(id),
+    getPortalMessageCount(id),
   ]);
 
   return NextResponse.json(
@@ -34,7 +34,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       },
       projects,
       invoices,
-      messageCount: messages.length,
+      messageCount,
     }),
   );
 }

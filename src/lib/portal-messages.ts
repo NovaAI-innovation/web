@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "@/lib/fs-async";
 import { dirname, join, resolve } from "node:path";
 import { revalidateTag, unstable_cache } from "next/cache";
 
@@ -79,6 +79,15 @@ function normalizeClientMessages(messages: LegacyPortalMessage[], clientId: stri
 export async function getPortalMessages(clientId: string): Promise<PortalMessage[]> {
   const messages = await getCachedMessages();
   return normalizeClientMessages(messages, clientId);
+}
+
+export async function getPortalMessageCount(clientId: string): Promise<number> {
+  const messages = await getCachedMessages();
+  let count = 0;
+  for (const message of messages) {
+    if (message.clientId === clientId) count += 1;
+  }
+  return count;
 }
 
 export async function addPortalMessage(input: {
@@ -178,5 +187,7 @@ export async function getThreadSummaries(): Promise<ThreadSummary[]> {
       lastMessageAt: last.createdAt,
       unreadByAdmin: msgs.filter((m) => m.author === "client").length,
     };
-  });
+  }).sort(
+    (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
+  );
 }

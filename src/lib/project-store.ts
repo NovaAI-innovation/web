@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "@/lib/fs-async";
 import { dirname, join, resolve } from "node:path";
 import { revalidateTag, unstable_cache } from "next/cache";
 
@@ -37,6 +37,10 @@ export type Project = {
   milestones: Milestone[];
   activity: Activity[];
   updatedAt: string;
+};
+
+export type ProjectListSummary = Pick<Project, "id" | "name" | "clientId" | "status" | "progress" | "updatedAt"> & {
+  budget: Pick<Project["budget"], "allocated" | "spent">;
 };
 
 type ProjectsFile = {
@@ -100,6 +104,22 @@ export async function getDashboardData(clientId: string) {
     totalBudgetAllocated: projects.reduce((sum, p) => sum + p.budget.allocated, 0),
     totalBudgetSpent: projects.reduce((sum, p) => sum + p.budget.spent, 0),
   };
+}
+
+export async function getProjectListSummary(): Promise<ProjectListSummary[]> {
+  const projects = await getAllProjects();
+  return projects.map((project) => ({
+    id: project.id,
+    name: project.name,
+    clientId: project.clientId,
+    status: project.status,
+    progress: project.progress,
+    updatedAt: project.updatedAt,
+    budget: {
+      allocated: project.budget.allocated,
+      spent: project.budget.spent,
+    },
+  }));
 }
 
 // --- Write helpers (bypass cache) ---

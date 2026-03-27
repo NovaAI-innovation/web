@@ -31,6 +31,10 @@ type PortalMessage = {
   createdAt: string;
   readByClient: boolean;
   attachment?: MessageAttachment;
+  optimistic?: boolean;
+  sendState?: "sending" | "failed";
+  sendError?: string;
+  retryFile?: File;
 };
 
 type ContractorDoc = {
@@ -66,6 +70,48 @@ function DocIcon({ filename }: { filename: string }) {
   if (["pdf", "doc", "docx", "txt", "md"].includes(ext))
     return <FileText className="w-4 h-4 text-chimera-gold shrink-0" />;
   return <File className="w-4 h-4 text-chimera-gold shrink-0" />;
+}
+
+async function uploadClientAttachment(
+  file: File,
+  onProgress: (percent: number) => void,
+): Promise<MessageAttachment> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("source", "client");
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/client-portal/documents/upload");
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+
+    xhr.onerror = () => reject(new Error("Upload failed"));
+    xhr.onload = () => {
+      try {
+        const payload = JSON.parse(xhr.responseText) as {
+          data: { filename: string; name: string; size: number } | null;
+          error: { message: string } | null;
+        };
+        if (xhr.status < 200 || xhr.status >= 300 || !payload.data) {
+          reject(new Error(payload.error?.message ?? "Upload failed"));
+          return;
+        }
+        resolve({
+          filename: payload.data.filename,
+          originalName: payload.data.name ?? file.name,
+          size: payload.data.size ?? file.size,
+        });
+      } catch {
+        reject(new Error("Upload failed"));
+      }
+    };
+
+    xhr.send(formData);
+  });
 }
 
 // ── Reasoning block (collapsible) ────────────────────────────────────────────
@@ -212,12 +258,13 @@ export default function MessagesPage() {
   const [draft, setDraft] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [isClearing, setIsClearing] = useState(false);
-  const [pendingClientText, setPendingClientText] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isMicSupported, setIsMicSupported] = useState(false);
+  const [recentActivityUntil, setRecentActivityUntil] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -246,11 +293,19 @@ export default function MessagesPage() {
       };
       if (!res.ok || !payload.data)
         throw new Error(payload.error?.message ?? "Failed to load");
-      setMessages(
-        [...payload.data.messages].sort(
-          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        )
+      const serverMessages = [...payload.data.messages].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
+      setMessages((prev) => {
+        const localTransient = prev.filter(
+          (m) => m.sendState === "sending" || m.sendState === "failed",
+        );
+        const merged = [...serverMessages];
+        for (const local of localTransient) {
+          if (!merged.some((m) => m.id === local.id)) merged.push(local);
+        }
+        return merged.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      });
       setUnreadCount(payload.data.unreadCount);
       setError(null);
     } catch (e) {
@@ -279,10 +334,27 @@ export default function MessagesPage() {
   }, [loadMessages]);
 
   useEffect(() => {
-    void loadMessages();
-    const t = setInterval(() => void loadMessages(), 5000);
-    return () => clearInterval(t);
-  }, [loadMessages]);
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const tick = async () => {
+      await loadMessages();
+      if (cancelled) return;
+      const now = Date.now();
+      const delayMs = isSending
+        ? 1500
+        : now < recentActivityUntil
+          ? 2500
+          : 10000;
+      timer = setTimeout(() => void tick(), delayMs);
+    };
+
+    void tick();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [isSending, loadMessages, recentActivityUntil]);
 
   useEffect(() => {
     if (unreadCount > 0) void markRead();
@@ -290,58 +362,74 @@ export default function MessagesPage() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length, pendingClientText, isSending]);
+  }, [messages.length, isSending]);
 
   // ── Send ───────────────────────────────────────────────────────────────────
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const body = draft.trim();
-    if (!body && !attachedFile) return;
+  const sendClientMessage = useCallback(async (input: {
+    body: string;
+    file?: File | null;
+    existingMessageId?: string;
+    attachment?: MessageAttachment;
+  }): Promise<boolean> => {
+    const optimisticId = input.existingMessageId ?? `temp-${Date.now()}`;
+    const displayText = input.body;
 
-    const displayText = body || `Shared a file: ${attachedFile?.name ?? "attachment"}`;
-
-    // Optimistic — show message immediately
-    setPendingClientText(displayText);
-    setDraft("");
-    setAttachedFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    if (textareaRef.current) textareaRef.current.style.height = "auto";
+    if (input.existingMessageId) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === optimisticId
+            ? { ...m, body: displayText, sendState: "sending", sendError: undefined, optimistic: true }
+            : m,
+        ),
+      );
+    } else {
+      const optimisticMessage: PortalMessage = {
+        id: optimisticId,
+        author: "client",
+        body: displayText,
+        createdAt: new Date().toISOString(),
+        readByClient: true,
+        ...(input.file
+          ? {
+              attachment: {
+                filename: input.file.name,
+                originalName: input.file.name,
+                size: input.file.size,
+              },
+            }
+          : input.attachment
+            ? { attachment: input.attachment }
+            : {}),
+        optimistic: true,
+        sendState: "sending",
+        ...(input.file ? { retryFile: input.file } : {}),
+      };
+      setMessages((prev) => [...prev, optimisticMessage]);
+    }
 
     setIsSending(true);
     setError(null);
+    setRecentActivityUntil(Date.now() + 30_000);
 
     try {
-      let attachmentData: MessageAttachment | undefined;
+      let attachmentData: MessageAttachment | undefined = input.attachment;
 
-      if (attachedFile) {
-        const fd = new FormData();
-        fd.append("file", attachedFile);
-        fd.append("source", "client");
-
-        const uploadRes = await fetch("/api/client-portal/documents/upload", {
-          method: "POST",
-          body: fd,
-        });
-        const uploadPayload = (await uploadRes.json()) as {
-          data: { filename: string; name: string; size: number } | null;
-          error: { message: string } | null;
-        };
-        if (!uploadRes.ok || !uploadPayload.data)
-          throw new Error(uploadPayload.error?.message ?? "Upload failed");
-
-        attachmentData = {
-          filename: uploadPayload.data.filename,
-          originalName: uploadPayload.data.name ?? attachedFile.name,
-          size: uploadPayload.data.size ?? attachedFile.size,
-        };
+      if (input.file) {
+        setUploadProgress(0);
+        attachmentData = await uploadClientAttachment(input.file, setUploadProgress);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === optimisticId ? { ...m, attachment: attachmentData, retryFile: undefined } : m,
+          ),
+        );
       }
 
       const res = await fetch("/api/client-portal/messages", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          body: body || `Shared a file: ${attachedFile?.name ?? "attachment"}`,
+          body: displayText,
           attachment: attachmentData,
         }),
       });
@@ -349,18 +437,76 @@ export default function MessagesPage() {
         data: { message: PortalMessage } | null;
         error: { message: string } | null;
       };
-      if (!res.ok || !payload.data)
+      if (!res.ok || !payload.data) {
         throw new Error(payload.error?.message ?? "Failed to send");
+      }
+      const confirmedMessage = payload.data.message;
 
-      await loadMessages();
+      setMessages((prev) => {
+        const idx = prev.findIndex((m) => m.id === optimisticId);
+        if (idx === -1) return [...prev, confirmedMessage];
+        const next = [...prev];
+        next[idx] = confirmedMessage;
+        return next;
+      });
+      void loadMessages();
+      return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to send message");
-      // Restore draft on failure
-      setDraft(displayText);
+      const errorMessage = e instanceof Error ? e.message : "Failed to send message";
+      setError(errorMessage);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === optimisticId
+            ? { ...m, optimistic: false, sendState: "failed", sendError: errorMessage }
+            : m,
+        ),
+      );
+      return false;
     } finally {
-      setPendingClientText(null);
+      setUploadProgress(null);
       setIsSending(false);
     }
+  }, [loadMessages]);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const body = draft.trim();
+    if (!body && !attachedFile) return;
+
+    const fileForSend = attachedFile;
+    const displayText = body || `Shared a file: ${fileForSend?.name ?? "attachment"}`;
+
+    setDraft("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+
+    const sent = await sendClientMessage({
+      body: displayText,
+      file: fileForSend,
+    });
+
+    if (sent) {
+      setAttachedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleRetryMessage(messageId: string) {
+    const failed = messages.find((m) => m.id === messageId && m.author === "client");
+    if (!failed) return;
+    await sendClientMessage({
+      body: failed.body,
+      file: failed.retryFile,
+      existingMessageId: failed.id,
+      attachment: failed.retryFile ? undefined : failed.attachment,
+    });
+  }
+
+  function handleEditFailedMessage(messageId: string) {
+    const failed = messages.find((m) => m.id === messageId && m.author === "client");
+    if (!failed) return;
+    setDraft(failed.body);
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    setTimeout(() => textareaRef.current?.focus(), 0);
   }
 
   // ── Voice input ────────────────────────────────────────────────────────────
@@ -466,7 +612,7 @@ export default function MessagesPage() {
             {isLoading && (
               <p className="text-sm text-chimera-text-muted">Loading…</p>
             )}
-            {!isLoading && messages.length === 0 && !pendingClientText && (
+            {!isLoading && messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
                 <div className="w-12 h-12 rounded-xl bg-chimera-surface border border-chimera-border flex items-center justify-center">
                   <span className="font-display text-chimera-gold text-lg">CE</span>
@@ -515,7 +661,11 @@ export default function MessagesPage() {
                           {authorLabel}
                         </span>
                         <span className="text-[10px] text-chimera-text-muted">
-                          {formatTime(msg.createdAt)}
+                          {msg.sendState === "sending"
+                            ? "sending..."
+                            : msg.sendState === "failed"
+                              ? "failed"
+                              : formatTime(msg.createdAt)}
                         </span>
                       </div>
 
@@ -523,7 +673,9 @@ export default function MessagesPage() {
                       <div
                         className={`rounded-2xl px-4 py-3 ${
                           isClient
-                            ? "bg-chimera-gold text-black rounded-tr-sm"
+                            ? msg.sendState === "failed"
+                              ? "bg-red-500/10 text-red-200 border border-red-500/30 rounded-tr-sm"
+                              : "bg-chimera-gold text-black rounded-tr-sm"
                             : "bg-chimera-surface border border-chimera-border text-white rounded-tl-sm"
                         }`}
                       >
@@ -554,35 +706,34 @@ export default function MessagesPage() {
                         {!isClient && msg.reasoning && (
                           <ReasoningBlock text={msg.reasoning} />
                         )}
+
+                        {isClient && msg.sendState === "failed" && (
+                          <div className="mt-2.5 flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void handleRetryMessage(msg.id)}
+                              className="text-[11px] px-2.5 py-1 rounded-md border border-red-300/40 text-red-100 hover:bg-red-500/15 transition"
+                            >
+                              Retry
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleEditFailedMessage(msg.id)}
+                              className="text-[11px] px-2.5 py-1 rounded-md border border-white/30 text-white/90 hover:bg-white/10 transition"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        )}
+
+                        {isClient && msg.sendState === "failed" && msg.sendError && (
+                          <p className="mt-2 text-[11px] text-red-200/90">{msg.sendError}</p>
+                        )}
                       </div>
                     </div>
                   </motion.div>
                 );
               })}
-            </AnimatePresence>
-
-            {/* Optimistic pending client message */}
-            <AnimatePresence>
-              {pendingClientText && (
-                <motion.div
-                  key="pending-client"
-                  initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.12, ease: "easeOut" }}
-                  className="flex justify-end"
-                >
-                  <div className="max-w-[72%]">
-                    <div className="flex items-baseline gap-2 mb-1.5 justify-end">
-                      <span className="text-[11px] font-medium text-chimera-text-secondary">You</span>
-                      <span className="text-[10px] text-chimera-text-muted">just now</span>
-                    </div>
-                    <div className="rounded-2xl rounded-tr-sm px-4 py-3 bg-chimera-gold text-black">
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{pendingClientText}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
             </AnimatePresence>
 
             {/* Typing indicator */}
@@ -619,6 +770,9 @@ export default function MessagesPage() {
                     <span className="text-chimera-text-muted">
                       {formatBytes(attachedFile.size)}
                     </span>
+                    {uploadProgress !== null && (
+                      <span className="text-chimera-gold tabular-nums">{uploadProgress}%</span>
+                    )}
                     <button
                       type="button"
                       aria-label="Remove attachment"
@@ -631,6 +785,14 @@ export default function MessagesPage() {
                       <X className="w-3 h-3" />
                     </button>
                   </div>
+                  {uploadProgress !== null && (
+                    <div className="mt-1 h-1.5 w-full max-w-[320px] bg-chimera-surface rounded-full overflow-hidden border border-chimera-border">
+                      <div
+                        className="h-full bg-chimera-gold transition-[width] duration-100"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -734,3 +896,4 @@ export default function MessagesPage() {
     </div>
   );
 }
+

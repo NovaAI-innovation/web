@@ -15,6 +15,15 @@ const eslintConfig = defineConfig([
     ".data/**",
     "next-env.d.ts",
   ]),
+  // Test file overrides
+  {
+    files: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "tests/**/*.ts", "src/test/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-unused-vars": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;
