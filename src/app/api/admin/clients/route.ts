@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { getAllClients } from "@/lib/client-store";
-import { getAllProjects } from "@/lib/project-store";
+import { getProjectListSummary } from "@/lib/project-store";
 import { success } from "@/lib/api";
 
 export async function GET() {
   const auth = await requireAdminAuth();
   if (!auth.ok) return auth.response;
 
-  const [clients, projects] = await Promise.all([getAllClients(), getAllProjects()]);
+  const [clients, projects] = await Promise.all([getAllClients(), getProjectListSummary()]);
   const countsByClient = new Map<string, { projectCount: number; activeProjectCount: number }>();
 
   for (const project of projects) {
@@ -32,5 +32,9 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json(success(withMeta));
+  return NextResponse.json(success(withMeta), {
+    headers: {
+      "Cache-Control": "private, max-age=15, stale-while-revalidate=30",
+    },
+  });
 }

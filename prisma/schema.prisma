@@ -19,18 +19,32 @@ model Role {
 }
 
 model User {
-  id              String                 @id
+  id              String                 @id @default(cuid())
   name            String
   email           String                 @unique
   phone           String?
   passwordHash    String
   legacySalt      String?
+  failedLoginCount Int                   @default(0)
+  accountLockedAt DateTime?
+  accountLockedUntil DateTime?
+  lastLoginAt     DateTime?
+  twoFactorEnabled Boolean               @default(false)
+  mailingListOptIn Boolean               @default(false)
   roleId          Int
   role            Role                   @relation(fields: [roleId], references: [id])
   emailVerifiedAt DateTime?
   createdAt       DateTime               @default(now())
 
   notificationPrefs NotificationPreference?
+  sessions          Session[]
+  auditEvents        AuditEvent[]
+  emailConfirmations EmailConfirmation[]
+  passwordResetTokens PasswordResetToken[]
+  twoFactorChallenges TwoFactorChallenge[]
+  projects            Project[]
+  invoices            Invoice[]
+  portalMessages      PortalMessage[]
 }
 
 model NotificationPreference {
@@ -41,4 +55,137 @@ model NotificationPreference {
   emailMilestones Boolean @default(true)
   emailBudget    Boolean @default(false)
   emailMarketing Boolean @default(false)
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  ipAddress String?
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model AuditEvent {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action       String
+  resourceType String?
+  resourceId   String?
+  ipAddress    String?
+  userAgent    String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+}
+
+model EmailConfirmation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+model TwoFactorChallenge {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  otpHash      String
+  attemptCount Int      @default(0)
+  completedAt  DateTime?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+}
+
+model Project {
+  id              String     @id @default(cuid())
+  clientId        String
+  client          User       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name            String
+  status          String
+  progress        Int
+  budgetAllocated Float
+  budgetSpent     Float
+  baselineEnd     DateTime
+  currentEnd      DateTime
+  daysVariance    Int        @default(0)
+  milestones      Milestone[]
+  activity        Activity[]
+  invoices        Invoice[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Milestone {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  completed Boolean  @default(false)
+  dueDate   DateTime
+  weight    Int?
+  createdAt DateTime @default(now())
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model Invoice {
+  id         String            @id @default(cuid())
+  clientId   String
+  client     User              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectId  String
+  project    Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  number     String            @unique
+  status     String
+  issuedDate DateTime
+  dueDate    DateTime
+  paidDate   DateTime?
+  subtotal   Float
+  tax        Float
+  total      Float
+  lineItems  InvoiceLineItem[]
+  createdAt  DateTime          @default(now())
+}
+
+model InvoiceLineItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int
+  unitPrice   Float
+  total       Float
+}
+
+model PortalMessage {
+  id           String   @id @default(cuid())
+  clientId     String
+  client       User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  author       String
+  body         String
+  reasoning    String?
+  readByClient Boolean  @default(false)
+  createdAt    DateTime @default(now())
 }

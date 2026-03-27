@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "@/lib/fs-async";
 import { dirname, join, resolve } from "node:path";
 import { createHash, randomBytes } from "node:crypto";
+import { revalidateTag, unstable_cache } from "next/cache";
 
 export type NotificationPreferences = {
   email: boolean;
@@ -26,6 +27,8 @@ type ClientFile = {
   clients: StoredClient[];
 };
 
+export type ClientListSummary = Pick<StoredClient, "id" | "name" | "email" | "phone" | "createdAt">;
+
 const defaultClientFile: ClientFile = { clients: [] };
 
 function resolveClientPath(): string {
@@ -50,9 +53,25 @@ async function readClients(): Promise<ClientFile> {
   return raw ? (JSON.parse(raw) as ClientFile) : defaultClientFile;
 }
 
-async function writeClients(data: ClientFile): Promise<void> {
+const getCachedClients = unstable_cache(
+  async (): Promise<StoredClient[]> => {
+    const data = await readClients();
+    return data.clients;
+  },
+  ["clients-all"],
+  { revalidate: 120, tags: ["clients"] },
+);
+
+async function readClientsRaw(): Promise<ClientFile> {
+  await ensureFile();
+  const raw = await readFile(resolveClientPath(), "utf-8");
+  return raw ? (JSON.parse(raw) as ClientFile) : defaultClientFile;
+}
+
+async function writeClientsRaw(data: ClientFile): Promise<void> {
   await ensureFile();
   await writeFile(resolveClientPath(), JSON.stringify(data, null, 2), "utf-8");
+  revalidateTag("clients", "max");
 }
 
 function hashPassword(password: string, salt: string): string {
@@ -62,25 +81,35 @@ function hashPassword(password: string, salt: string): string {
 }
 
 export async function getAllClients(): Promise<StoredClient[]> {
-  const data = await readClients();
-  return data.clients;
+  return getCachedClients();
+}
+
+export async function getClientListSummary(): Promise<ClientListSummary[]> {
+  const clients = await getCachedClients();
+  return clients.map((client) => ({
+    id: client.id,
+    name: client.name,
+    email: client.email,
+    phone: client.phone,
+    createdAt: client.createdAt,
+  }));
 }
 
 export async function findClientByEmail(email: string): Promise<StoredClient | null> {
-  const data = await readClients();
-  return data.clients.find((c) => c.email.toLowerCase() === email.toLowerCase()) ?? null;
+  const clients = await getCachedClients();
+  return clients.find((c) => c.email.toLowerCase() === email.toLowerCase()) ?? null;
 }
 
 export async function findClientById(id: string): Promise<StoredClient | null> {
-  const data = await readClients();
-  return data.clients.find((c) => c.id === id) ?? null;
+  const clients = await getCachedClients();
+  return clients.find((c) => c.id === id) ?? null;
 }
 
 export async function updateClient(
   id: string,
   updates: Partial<Pick<StoredClient, "name" | "email" | "phone">>,
 ): Promise<StoredClient | null> {
-  const data = await readClients();
+  const data = await readClientsRaw();
   const index = data.clients.findIndex((c) => c.id === id);
   if (index === -1) return null;
 
@@ -88,7 +117,7 @@ export async function updateClient(
   if (updates.email) data.clients[index].email = updates.email.toLowerCase();
   if (updates.phone) data.clients[index].phone = updates.phone;
 
-  await writeClients(data);
+  await writeClientsRaw(data);
   return data.clients[index];
 }
 
@@ -98,7 +127,7 @@ export async function registerClient(input: {
   phone: string;
   password: string;
 }): Promise<StoredClient> {
-  const data = await readClients();
+  const data = await readClientsRaw();
 
   const existing = data.clients.find(
     (c) => c.email.toLowerCase() === input.email.toLowerCase(),
@@ -119,7 +148,7 @@ export async function registerClient(input: {
   };
 
   data.clients.push(client);
-  await writeClients(data);
+  await writeClientsRaw(data);
   return client;
 }
 
@@ -141,7 +170,7 @@ export async function changeClientPassword(
   currentPassword: string,
   newPassword: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const data = await readClients();
+  const data = await readClientsRaw();
   const index = data.clients.findIndex((c) => c.id === id);
   if (index === -1) return { success: false, error: "Account not found" };
 
@@ -155,7 +184,7 @@ export async function changeClientPassword(
   data.clients[index].passwordHash = hashPassword(newPassword, newSalt);
   data.clients[index].salt = newSalt;
 
-  await writeClients(data);
+  await writeClientsRaw(data);
   return { success: true };
 }
 
@@ -179,7 +208,7 @@ export function parseToken(token: string): { clientId: string; timestamp: number
 // --- Password Reset ---
 
 export async function createResetToken(email: string): Promise<string | null> {
-  const data = await readClients();
+  const data = await readClientsRaw();
   const index = data.clients.findIndex(
     (c) => c.email.toLowerCase() === email.toLowerCase(),
   );
@@ -191,7 +220,7 @@ export async function createResetToken(email: string): Promise<string | null> {
   data.clients[index].resetToken = createHash("sha256").update(token).digest("hex");
   data.clients[index].resetTokenExpiry = expiry;
 
-  await writeClients(data);
+  await writeClientsRaw(data);
   return token;
 }
 
@@ -199,7 +228,7 @@ export async function resetPasswordWithToken(
   token: string,
   newPassword: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const data = await readClients();
+  const data = await readClientsRaw();
   const tokenHash = createHash("sha256").update(token).digest("hex");
 
   const index = data.clients.findIndex((c) => c.resetToken === tokenHash);
@@ -210,7 +239,7 @@ export async function resetPasswordWithToken(
     // Clean up expired token
     delete data.clients[index].resetToken;
     delete data.clients[index].resetTokenExpiry;
-    await writeClients(data);
+    await writeClientsRaw(data);
     return { success: false, error: "Reset link has expired" };
   }
 
@@ -220,7 +249,7 @@ export async function resetPasswordWithToken(
   delete data.clients[index].resetToken;
   delete data.clients[index].resetTokenExpiry;
 
-  await writeClients(data);
+  await writeClientsRaw(data);
   return { success: true };
 }
 
@@ -242,7 +271,7 @@ export async function updateNotificationPrefs(
   clientId: string,
   prefs: Partial<NotificationPreferences>,
 ): Promise<NotificationPreferences> {
-  const data = await readClients();
+  const data = await readClientsRaw();
   const index = data.clients.findIndex((c) => c.id === clientId);
   if (index === -1) return defaultNotificationPrefs;
 
@@ -250,6 +279,6 @@ export async function updateNotificationPrefs(
   const updated = { ...current, ...prefs };
   data.clients[index].notificationPrefs = updated;
 
-  await writeClients(data);
+  await writeClientsRaw(data);
   return updated;
 }

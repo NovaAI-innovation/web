@@ -11,16 +11,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
-  const client = await findClientById(id);
-  if (!client) {
-    return NextResponse.json(failure("VALIDATION_ERROR", "Client not found"), { status: 404 });
-  }
-
-  const [projects, invoices, messageCount] = await Promise.all([
+  const [client, projects, invoices, messageCount] = await Promise.all([
+    findClientById(id),
     getProjectsByClient(id),
     getInvoicesByClient(id),
     getPortalMessageCount(id),
   ]);
+  if (!client) {
+    return NextResponse.json(failure("VALIDATION_ERROR", "Client not found"), { status: 404 });
+  }
 
   return NextResponse.json(
     success({

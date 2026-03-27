@@ -165,29 +165,32 @@ export type ThreadSummary = {
 
 export async function getThreadSummaries(): Promise<ThreadSummary[]> {
   const messages = await getCachedMessages();
-  const byClient = new Map<string, LegacyPortalMessage[]>();
+  const byClient = new Map<string, ThreadSummary>();
 
   for (const m of messages) {
     const cid = m.clientId ?? "";
     if (!cid) continue;
-    const existing = byClient.get(cid) ?? [];
-    existing.push(m);
-    byClient.set(cid, existing);
+    const existing = byClient.get(cid);
+    if (!existing) {
+      byClient.set(cid, {
+        clientId: cid,
+        messageCount: 1,
+        lastMessage: m.body.slice(0, 120),
+        lastMessageAt: m.createdAt,
+        unreadByAdmin: m.author === "client" ? 1 : 0,
+      });
+      continue;
+    }
+
+    existing.messageCount += 1;
+    if (m.author === "client") existing.unreadByAdmin += 1;
+    if (new Date(m.createdAt).getTime() >= new Date(existing.lastMessageAt).getTime()) {
+      existing.lastMessageAt = m.createdAt;
+      existing.lastMessage = m.body.slice(0, 120);
+    }
   }
 
-  return Array.from(byClient.entries()).map(([clientId, msgs]) => {
-    const sorted = [...msgs].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-    const last = sorted[0];
-    return {
-      clientId,
-      messageCount: msgs.length,
-      lastMessage: last.body.slice(0, 120),
-      lastMessageAt: last.createdAt,
-      unreadByAdmin: msgs.filter((m) => m.author === "client").length,
-    };
-  }).sort(
+  return Array.from(byClient.values()).sort(
     (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
   );
 }

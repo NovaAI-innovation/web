@@ -16,7 +16,6 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { failure } from "@/lib/api";
 import { logEvent } from "@/lib/observability";
-import type { Prisma } from "@prisma/client";
 
 // ─────────────────────────────────────────────
 // Constants
@@ -39,7 +38,17 @@ const ACCOUNT_LOCK_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 // Types
 // ─────────────────────────────────────────────
 
-export type UserWithRole = Prisma.UserGetPayload<{ include: { role: true } }>;
+export type UserWithRole = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: { name: string };
+  emailVerifiedAt: Date | null;
+  accountLockedUntil: Date | null;
+  twoFactorEnabled?: boolean | null;
+  mailingListOptIn?: boolean | null;
+};
 
 export type AuthResult =
   | { ok: true; user: UserWithRole }
@@ -97,7 +106,13 @@ export async function createSession(
 ): Promise<{ token: string; role: string }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { role: true },
+    select: {
+      role: {
+        select: {
+          name: true,
+        },
+      },
+    },
   });
   if (!user) throw new Error("User not found");
 
@@ -131,7 +146,25 @@ async function resolveSession(token: string): Promise<UserWithRole | null> {
 
   const session = await prisma.session.findUnique({
     where: { tokenHash },
-    include: { user: { include: { role: true } } },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          emailVerifiedAt: true,
+          accountLockedUntil: true,
+          twoFactorEnabled: true,
+          mailingListOptIn: true,
+          role: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!session) return null;

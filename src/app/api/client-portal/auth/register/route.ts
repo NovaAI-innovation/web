@@ -53,7 +53,17 @@ export async function POST(request: Request) {
 
   const { name, email, phone, password, mailingListOptIn } = parsed.data;
 
-  const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  const normalizedEmail = email.toLowerCase();
+  const [existing, clientRole] = await Promise.all([
+    prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true },
+    }),
+    prisma.role.findUnique({
+      where: { name: "client" },
+      select: { id: true },
+    }),
+  ]);
   if (existing) {
     return NextResponse.json(
       failure("VALIDATION_ERROR", "An account with this email already exists"),
@@ -61,7 +71,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const clientRole = await prisma.role.findUnique({ where: { name: "client" } });
   if (!clientRole) {
     logEvent({ level: "error", message: "client role not found", requestId, route: "/api/client-portal/auth/register", status: 500 });
     return NextResponse.json(failure("INTERNAL_ERROR", "Registration failed"), { status: 500 });
@@ -72,7 +81,7 @@ export async function POST(request: Request) {
   const user = await prisma.user.create({
     data: {
       name,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       phone,
       passwordHash,
       roleId: clientRole.id,
